@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Impression - Achats</title>
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:Arial, sans-serif; color:#1c2521; margin:0; padding:28px; font-size:12.5px;}
+  h1{font-size:19px; margin:0 0 2px;}
+  .meta{color:#555; font-size:11.5px; margin-bottom:14px;}
+  table{width:100%; border-collapse:collapse; margin-top:10px;}
+  th, td{border:1px solid #ccc; padding:6px 8px; text-align:left;}
+  th{background:#efece2; font-size:10.5px; text-transform:uppercase;}
+  td.amount, th.amount{text-align:right; font-variant-numeric:tabular-nums;}
+  tfoot td{font-weight:800; background:#efece2;}
+  .toolbar{margin-bottom:16px;}
+  .toolbar button{background:#b5512f; color:#fff; border:none; padding:9px 16px; border-radius:6px; font-weight:700; cursor:pointer;}
+  @media print{ .toolbar{display:none;} body{padding:0;} }
+</style>
+</head>
+<body>
+  <div class="toolbar"><button onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button></div>
+  <h1>État des achats{% if chantier_nom %} — {{ chantier_nom }}{% endif %}</h1>
+  <div class="meta">
+    Édité le {{ date_impression }}
+    {% if filtres.tableau_ref %} · Référence : {{ filtres.tableau_ref }}{% endif %}
+    {% if filtres.categorie %} · Catégorie : {{ filtres.categorie }}{% endif %}
+    {% if filtres.date_min or filtres.date_max %} · Période : {{ filtres.date_min or '...' }} → {{ filtres.date_max or '...' }}{% endif %}
+    · {{ rows|length }} ligne(s)
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Chantier</th><th>Date</th><th>Fournisseur</th><th>Objet</th><th>Catégorie</th>
+        <th>Référence</th><th class="amount">PU</th><th class="amount">Qté</th><th class="amount">Montant</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in rows %}
+      <tr>
+        <td>{{ a.chantier_nom or '—' }}</td>
+        <td>{{ a.date or '—' }}</td>
+        <td>{{ a.fournisseur }}</td>
+        <td>{{ a.objet }}</td>
+        <td>{{ a.categorie or '—' }}</td>
+        <td>{{ a.tableau_ref or '—' }}</td>
+        <td class="amount">{{ "{:,.0f}".format(a.pu or 0).replace(',', ' ') if a.pu else '—' }}</td>
+        <td class="amount">{{ (a.quantite|string).rstrip('0').rstrip('.') if a.quantite else '—' }}</td>
+        <td class="amount">{{ "{:,.0f}".format(a.montant).replace(',', ' ') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center; padding:20px;">Aucun achat.</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="8" style="text-align:right;">TOTAL GÉNÉRAL</td>
+        <td class="amount">{{ "{:,.0f}".format(total).replace(',', ' ') }} F</td>
+      </tr>
+    </tfoot>
+  </table>
+</body>
+</html>

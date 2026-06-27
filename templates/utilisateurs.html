@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Utilisateurs</h1><div class="sub">Gérez les accès Administrateur (tout modifier) et Saisie (ajout uniquement, sans modification ni suppression)</div></div>
+
+<div style="display:grid; grid-template-columns:1.4fr 1fr; gap:20px;">
+  <div class="table-wrap">
+    <table>
+      <tr><th>Utilisateur</th><th>Nom</th><th>Rôle</th><th>Statut</th><th></th></tr>
+      {% for u in rows %}
+      <tr>
+        <td><b>{{ u.username }}</b></td>
+        <td>{{ u.nom_complet or '—' }}</td>
+        <td><span class="role-badge {{ 'saisie' if u.role=='saisie' }}" style="position:static;">{{ 'Admin' if u.role=='admin' else 'Saisie' }}</span></td>
+        <td>{{ 'Actif' if u.actif else 'Désactivé' }}</td>
+        <td style="display:flex; gap:6px;">
+          <form method="post" action="{{ url_for('utilisateur_toggle', uid=u.id) }}">
+            <button class="btn ghost" type="submit">{{ 'Désactiver' if u.actif else 'Activer' }}</button>
+          </form>
+          <button class="btn ghost" type="button" onclick="var r=document.getElementById('rp-{{u.id}}'); r.style.display = r.style.display==='none' ? 'table-row' : 'none';">Mdp</button>
+        </td>
+      </tr>
+      <tr id="rp-{{u.id}}" style="display:none;">
+        <td colspan="5">
+          <form method="post" action="{{ url_for('utilisateur_reinit', uid=u.id) }}" style="display:flex; gap:8px; align-items:end;">
+            <div class="field"><label>Nouveau mot de passe</label><input type="text" name="password" required></div>
+            <button class="btn small" type="submit">Réinitialiser</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title" style="margin-top:0;">Créer un nouvel utilisateur</div>
+    <form method="post" action="{{ url_for('utilisateur_nouveau') }}">
+      <div class="field" style="margin-bottom:14px;"><label>Identifiant *</label><input type="text" name="username" required></div>
+      <div class="field" style="margin-bottom:14px;"><label>Nom complet</label><input type="text" name="nom_complet"></div>
+      <div class="field" style="margin-bottom:14px;"><label>Mot de passe *</label><input type="text" name="password" required></div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Rôle</label>
+        <select name="role">
+          <option value="saisie">Saisie (ajout uniquement)</option>
+          <option value="admin">Administrateur (accès complet)</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">Créer l'utilisateur</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

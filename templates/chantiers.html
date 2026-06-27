@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Chantiers{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Chantiers</h1><div class="sub">Organisez vos prestataires et achats par chantier</div></div>
+<div style="display:grid; grid-template-columns:1.4fr 1fr; gap:20px;">
+  <div class="table-wrap">
+    <table>
+      <tr><th>Nom</th><th>Description</th><th>Créé le</th></tr>
+      {% for c in rows %}
+      <tr><td><b>{{ c.nom }}</b></td><td>{{ c.description or '—' }}</td><td>{{ c.date_creation[:10] if c.date_creation }}</td></tr>
+      {% else %}
+      <tr><td colspan="3" class="empty">Aucun chantier</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title" style="margin-top:0;">Ajouter un chantier</div>
+    <form method="post">
+      <div class="field" style="margin-bottom:14px;"><label>Nom *</label><input type="text" name="nom" required></div>
+      <div class="field" style="margin-bottom:14px;"><label>Description</label><input type="text" name="description"></div>
+      <button class="btn" type="submit">Ajouter</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

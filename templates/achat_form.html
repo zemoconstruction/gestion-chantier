@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if a else 'Nouvel' }} achat{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ 'Modifier l\'achat' if a else 'Nouvel achat' }}</h1></div>
+<div class="card">
+  <form method="post">
+    <div class="form-grid">
+      <div class="field"><label>Date *</label><input type="date" name="date" required value="{{ a.date if a else '' }}"></div>
+      <div class="field"><label>Fournisseur *</label><input type="text" name="fournisseur" required value="{{ a.fournisseur if a else '' }}"></div>
+      <div class="field full"><label>Objet de l'achat *</label><textarea name="objet" rows="2" required>{{ a.objet if a else '' }}</textarea></div>
+
+      <div class="field">
+        <label>Catégorie</label>
+        <select name="categorie" id="categorie-select" onchange="toggleNouvelleCategorie()">
+          <option value="">—</option>
+          {% for c in categories %}
+          <option value="{{ c }}" {{ 'selected' if a and a.categorie==c }}>{{ c }}</option>
+          {% endfor %}
+          <option value="__new__" {{ 'selected' if a and a.categorie and a.categorie not in categories }}>+ Autre (nouvelle catégorie)</option>
+        </select>
+      </div>
+      <div class="field" id="nouvelle-categorie-field" style="display:none;">
+        <label>Nom de la nouvelle catégorie</label>
+        <input type="text" name="nouvelle_categorie" id="nouvelle_categorie" value="{{ a.categorie if a and a.categorie not in categories else '' }}" placeholder="Ex: Peinture">
+      </div>
+
+      <div class="field"><label>Prix unitaire (PU)</label><input type="number" step="0.01" name="pu" id="pu" value="{{ a.pu if a and a.pu else '' }}" oninput="calculerMontant()" placeholder="0"></div>
+      <div class="field"><label>Quantité</label><input type="number" step="0.01" name="quantite" id="quantite" value="{{ a.quantite if a and a.quantite else '' }}" oninput="calculerMontant()" placeholder="0"></div>
+      <div class="field">
+        <label>Montant total (F) *</label>
+        <input type="number" step="0.01" name="montant" id="montant" required value="{{ a.montant if a else '' }}">
+        <small style="color:var(--muted); font-size:11px;">Calculé automatiquement si PU et Quantité sont renseignés (modifiable sinon).</small>
+      </div>
+      <div class="field"><label>Référence / N° tableau</label><input type="text" name="tableau_ref" value="{{ a.tableau_ref if a else '' }}" placeholder="Ex: TC 12, Chèque n°5"></div>
+      <div class="field">
+        <label>Mode de paiement</label>
+        <select name="mode_paiement">
+          <option {{ 'selected' if a and a.mode_paiement=='Chèque' }}>Chèque</option>
+          <option {{ 'selected' if a and a.mode_paiement=='Espèces' }}>Espèces</option>
+          <option {{ 'selected' if a and a.mode_paiement=='Virement' }}>Virement</option>
+          <option {{ 'selected' if a and a.mode_paiement=='Mobile Money' }}>Mobile Money</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Chantier</label>
+        <select name="chantier_id">
+          <option value="">—</option>
+          {% for c in chantiers %}
+          <option value="{{ c.id }}" {{ 'selected' if a and a.chantier_id==c.id }}>{{ c.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn" type="submit">Enregistrer</button>
+      <a class="btn secondary" href="{{ url_for('achats_list') }}">Annuler</a>
+    </div>
+  </form>
+</div>
+<script>
+function calculerMontant(){
+  var pu = parseFloat(document.getElementById('pu').value);
+  var qte = parseFloat(document.getElementById('quantite').value);
+  if (!isNaN(pu) && !isNaN(qte) && pu > 0 && qte > 0){
+    document.getElementById('montant').value = (pu * qte).toFixed(2);
+  }
+}
+function toggleNouvelleCategorie(){
+  var sel = document.getElementById('categorie-select');
+  var field = document.getElementById('nouvelle-categorie-field');
+  field.style.display = (sel.value === '__new__') ? 'flex' : 'none';
+}
+document.addEventListener('DOMContentLoaded', function(){
+  toggleNouvelleCategorie();
+  calculerMontant();
+});
+</script>
+{% endblock %}

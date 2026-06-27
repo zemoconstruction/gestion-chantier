@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Prestataires{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Prestataires</h1>
+    <div class="sub">{{ rows|length }} résultat(s) — recherchez par nom, téléphone, travaux ou filtrez par chantier / période / montant</div>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <a class="btn secondary" href="{{ url_for('prestataires_imprimer', q=q, statut=statut, chantier_id=chantier_id, date_min=date_min, date_max=date_max, montant_min=montant_min, montant_max=montant_max) }}" target="_blank">🖨 Imprimer / PDF</a>
+    <a class="btn secondary" href="{{ url_for('export_prestataires') }}">⭳ Exporter (CSV)</a>
+    <a class="btn" href="{{ url_for('prestataire_nouveau') }}">+ Nouveau prestataire</a>
+  </div>
+</div>
+
+<div class="filters">
+  <form method="get">
+    <div class="field">
+      <label>Chantier</label>
+      <select name="chantier_id">
+        <option value="">Tous les chantiers</option>
+        {% for c in chantiers %}
+        <option value="{{ c.id }}" {{ 'selected' if chantier_id|string==c.id|string }}>{{ c.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="flex:1; min-width:200px;">
+      <label>Recherche</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Nom, téléphone, travaux, spécialité...">
+    </div>
+    <div class="field">
+      <label>Statut</label>
+      <select name="statut">
+        <option value="">Tous</option>
+        {% for s in ['En cours','Terminé','Suspendu'] %}
+        <option value="{{ s }}" {{ 'selected' if statut==s }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Début après le</label>
+      <input type="date" name="date_min" value="{{ date_min }}">
+    </div>
+    <div class="field">
+      <label>Début avant le</label>
+      <input type="date" name="date_max" value="{{ date_max }}">
+    </div>
+    <div class="field">
+      <label>Contrat min</label>
+      <input type="number" name="montant_min" value="{{ montant_min }}" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Contrat max</label>
+      <input type="number" name="montant_max" value="{{ montant_max }}" placeholder="∞">
+    </div>
+    <button class="btn" type="submit">Filtrer</button>
+    <a class="btn secondary" href="{{ url_for('prestataires_list') }}">Réinitialiser</a>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <tr>
+      <th>Chantier</th><th>Prestataire</th><th>Téléphone</th><th>Travaux</th><th>Contrat</th>
+      <th>Avances reçues</th><th>Solde</th><th>Fin prévue</th><th>Statut</th>
+    </tr>
+    {% for p in rows %}
+    <tr class="link-row" onclick="window.location='{{ url_for('prestataire_detail', pid=p.id) }}'">
+      <td>{% if p.chantier_nom %}<span class="pill">{{ p.chantier_nom }}</span>{% else %}—{% endif %}</td>
+      <td><b>{{ p.nom }}</b>{% if p.specialite %}<div class="pill">{{ p.specialite }}</div>{% endif %}</td>
+      <td>{{ p.telephone or '—' }}</td>
+      <td>{{ (p.travaux or '')[:40] }}</td>
+      <td class="amount">{{ "{:,.0f}".format(p.montant_contrat).replace(',', ' ') }} F</td>
+      <td class="amount">{{ "{:,.0f}".format(p.total_avance).replace(',', ' ') }} F</td>
+      <td class="amount {{ 'neg' if p.solde > 0 else 'pos' }}">{{ "{:,.0f}".format(p.solde).replace(',', ' ') }} F</td>
+      <td>{{ p.date_fin_prevue or '—' }}</td>
+      <td>
+        <span class="badge {{ 'cours' if p.statut=='En cours' else ('termine' if p.statut=='Terminé' else 'suspendu') }}">{{ p.statut }}</span>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="9" class="empty"><div class="big">🔍</div>Aucun prestataire ne correspond à cette recherche.</td></tr>
+    {% endfor %}
+    {% if rows %}
+    <tr style="background:#efece2; font-weight:800;">
+      <td colspan="4" style="text-align:right;">TOTAUX</td>
+      <td class="amount">{{ "{:,.0f}".format(rows|sum(attribute='montant_contrat')).replace(',', ' ') }} F</td>
+      <td class="amount">{{ "{:,.0f}".format(rows|sum(attribute='total_avance')).replace(',', ' ') }} F</td>
+      <td class="amount">{{ "{:,.0f}".format(rows|sum(attribute='solde')).replace(',', ' ') }} F</td>
+      <td colspan="2"></td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+{% endblock %}

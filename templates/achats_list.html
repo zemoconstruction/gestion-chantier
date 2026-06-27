@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Achats{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Achats</h1>
+    <div class="sub">{{ rows|length }} résultat(s) — total filtré : <b class="amount">{{ "{:,.0f}".format(total).replace(',', ' ') }} F</b></div>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <a class="btn secondary" href="{{ url_for('achats_imprimer', q=q, chantier_id=chantier_id, tableau_ref=tableau_ref, categorie=categorie, date_min=date_min, date_max=date_max, montant_min=montant_min, montant_max=montant_max) }}" target="_blank">🖨 Imprimer / PDF</a>
+    <a class="btn secondary" href="{{ url_for('export_achats') }}">⭳ Exporter (CSV)</a>
+    <a class="btn" href="{{ url_for('achat_nouveau') }}">+ Nouvel achat</a>
+  </div>
+</div>
+
+<div class="filters">
+  <form method="get">
+    <div class="field">
+      <label>Chantier</label>
+      <select name="chantier_id">
+        <option value="">Tous les chantiers</option>
+        {% for c in chantiers %}
+        <option value="{{ c.id }}" {{ 'selected' if chantier_id|string==c.id|string }}>{{ c.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Référence (TC N°)</label>
+      <input type="text" name="tableau_ref" value="{{ tableau_ref }}" placeholder="Ex: TC 12">
+    </div>
+    <div class="field" style="flex:1; min-width:200px;">
+      <label>Recherche</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Fournisseur, objet...">
+    </div>
+    <div class="field">
+      <label>Catégorie</label>
+      <select name="categorie">
+        <option value="">Toutes</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {{ 'selected' if categorie==c }}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>Du</label><input type="date" name="date_min" value="{{ date_min }}"></div>
+    <div class="field"><label>Au</label><input type="date" name="date_max" value="{{ date_max }}"></div>
+    <div class="field"><label>Montant min</label><input type="number" name="montant_min" value="{{ montant_min }}"></div>
+    <div class="field"><label>Montant max</label><input type="number" name="montant_max" value="{{ montant_max }}"></div>
+    <button class="btn" type="submit">Filtrer</button>
+    <a class="btn secondary" href="{{ url_for('achats_list') }}">Réinitialiser</a>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <tr><th>Chantier</th><th>Date</th><th>Fournisseur</th><th>Objet</th><th>Catégorie</th><th>Référence</th><th>PU</th><th>Qté</th><th>Montant</th>{% if session.role=='admin' %}<th></th>{% endif %}</tr>
+    {% for a in rows %}
+    <tr>
+      <td>{% if a.chantier_nom %}<span class="pill">{{ a.chantier_nom }}</span>{% else %}—{% endif %}</td>
+      <td>{{ a.date or '—' }}</td>
+      <td><b>{{ a.fournisseur }}</b></td>
+      <td>{{ (a.objet or '')[:50] }}</td>
+      <td>{% if a.categorie %}<span class="pill">{{ a.categorie }}</span>{% else %}—{% endif %}</td>
+      <td style="color:#6f6a5c; font-size:12.5px;">{{ a.tableau_ref or '—' }}</td>
+      <td class="amount">{{ "{:,.0f}".format(a.pu or 0).replace(',', ' ') if a.pu else '—' }}</td>
+      <td class="amount">{{ (a.quantite|string).rstrip('0').rstrip('.') if a.quantite else '—' }}</td>
+      <td class="amount">{{ "{:,.0f}".format(a.montant).replace(',', ' ') }} F</td>
+      {% if session.role=='admin' %}
+      <td style="display:flex; gap:4px;">
+        <a class="btn ghost" href="{{ url_for('achat_modifier', aid=a.id) }}">Modifier</a>
+        <form method="post" action="{{ url_for('achat_supprimer', aid=a.id) }}" onsubmit="return confirm('Supprimer cet achat ?');">
+          <button class="btn ghost" type="submit" style="color:#a23b3b;">Supprimer</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="10" class="empty"><div class="big">🧾</div>Aucun achat ne correspond à cette recherche.</td></tr>
+    {% endfor %}
+    {% if rows %}
+    <tr style="background:#efece2; font-weight:800;">
+      <td colspan="8" style="text-align:right;">TOTAL</td>
+      <td class="amount">{{ "{:,.0f}".format(total).replace(',', ' ') }} F</td>
+      {% if session.role=='admin' %}<td></td>{% endif %}
+    </tr>
+    {% endif %}
+  </table>
+</div>
+{% endblock %}

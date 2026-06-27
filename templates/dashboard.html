@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Tableau de bord</h1>
+    <div class="sub">Vue d'ensemble de vos chantiers — mains d'œuvre, avances et achats</div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="label">Total des achats</div>
+    <div class="value">{{ "{:,.0f}".format(total_achats).replace(',', ' ') }} F</div>
+  </div>
+  <div class="kpi alt">
+    <div class="label">Total des avances versées</div>
+    <div class="value">{{ "{:,.0f}".format(total_avances).replace(',', ' ') }} F</div>
+  </div>
+  <div class="kpi alt2">
+    <div class="label">Total des contrats prestataires</div>
+    <div class="value">{{ "{:,.0f}".format(total_contrats).replace(',', ' ') }} F</div>
+  </div>
+  <div class="kpi" style="border-left-color:#1c2521;">
+    <div class="label">Solde restant à payer (global)</div>
+    <div class="value">{{ "{:,.0f}".format(solde_global).replace(',', ' ') }} F</div>
+  </div>
+  <div class="kpi alt">
+    <div class="label">Prestataires actifs</div>
+    <div class="value">{{ nb_prestataires }}</div>
+    <div class="sub" style="margin-top:4px;">{{ nb_en_cours }} en cours · {{ nb_termines }} terminés</div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1.3fr 1fr; gap:18px;">
+  <div>
+    <div class="section-title">Derniers achats enregistrés</div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Date</th><th>Fournisseur</th><th>Objet</th><th>Montant</th></tr>
+        {% for r in derniers_achats %}
+        <tr>
+          <td>{{ r.date or '—' }}</td>
+          <td>{{ r.fournisseur }}</td>
+          <td>{{ (r.objet or '')[:40] }}</td>
+          <td class="amount">{{ "{:,.0f}".format(r.montant).replace(',', ' ') }} F</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">Aucun achat enregistré</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="section-title">Dernières avances versées</div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Date</th><th>Prestataire</th><th>Libellé</th><th>Montant</th></tr>
+        {% for r in dernieres_avances %}
+        <tr>
+          <td>{{ r.date or '—' }}</td>
+          <td>{{ r.prestataire_nom }}</td>
+          <td>{{ (r.libelle or '')[:35] }}</td>
+          <td class="amount">{{ "{:,.0f}".format(r.montant).replace(',', ' ') }} F</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">Aucune avance enregistrée</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Prestataires — plus gros soldes restants</div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Prestataire</th><th>Solde</th></tr>
+        {% for p in top_prestataires %}
+        <tr class="link-row" onclick="window.location='{{ url_for('prestataire_detail', pid=p.id) }}'">
+          <td>{{ p.nom }}</td>
+          <td class="amount {{ 'neg' if (p.montant_contrat - p.total_avance) > 0 else 'pos' }}">
+            {{ "{:,.0f}".format(p.montant_contrat - p.total_avance).replace(',', ' ') }} F
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2" class="empty">Aucun prestataire</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="section-title">Achats par catégorie</div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Catégorie</th><th>Total</th></tr>
+        {% for c in par_categorie %}
+        <tr>
+          <td>{{ c.cat }}</td>
+          <td class="amount">{{ "{:,.0f}".format(c.total).replace(',', ' ') }} F</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2" class="empty">Aucune donnée</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

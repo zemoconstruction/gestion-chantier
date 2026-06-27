@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Gestion Chantiers{% endblock %}</title>
+<style>
+:root{
+  --ink:#1c2521;
+  --paper:#f6f4ee;
+  --brick:#b5512f;
+  --brick-dark:#923f22;
+  --clay:#8a7159;
+  --green:#4c6b4f;
+  --line:#dcd6c8;
+  --card:#ffffff;
+  --muted:#6f6a5c;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:'Segoe UI',Arial,sans-serif; background:var(--paper); color:var(--ink);
+  font-size:15px;
+}
+a{color:inherit; text-decoration:none;}
+.topbar{
+  background:var(--ink); color:#f6f4ee; padding:0 24px; display:flex; align-items:center;
+  justify-content:space-between; height:60px; position:sticky; top:0; z-index:50;
+  border-bottom:3px solid var(--brick);
+}
+.brand{font-weight:800; font-size:19px; letter-spacing:.3px; display:flex; align-items:center; gap:10px;}
+.brand .sq{width:12px;height:12px;background:var(--brick);display:inline-block; transform:rotate(45deg);}
+.nav{display:flex; gap:4px; align-items:center;}
+.nav a{padding:9px 14px; border-radius:6px; font-size:13.5px; font-weight:600; color:#d8d4c8; transition:.15s;}
+.nav a:hover, .nav a.active{background:rgba(255,255,255,.08); color:#fff;}
+.userbox{display:flex; align-items:center; gap:10px; font-size:13px; color:#cfcabb;}
+.role-badge{background:var(--brick); color:#fff; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;}
+.role-badge.saisie{background:var(--green);}
+.logout-btn{color:#cfcabb; font-size:13px; border:1px solid #44473f; padding:6px 12px; border-radius:6px;}
+.logout-btn:hover{background:#2a322c; color:#fff;}
+.container{max-width:1280px; margin:0 auto; padding:28px 24px 60px;}
+.page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px; flex-wrap:wrap; gap:12px;}
+.page-head h1{font-size:24px; margin:0; font-weight:800; letter-spacing:-.2px;}
+.page-head .sub{color:var(--muted); font-size:13.5px; margin-top:3px;}
+.btn{
+  display:inline-flex; align-items:center; gap:6px; background:var(--brick); color:#fff; border:none;
+  padding:10px 18px; border-radius:7px; font-weight:700; font-size:13.5px; cursor:pointer;
+  transition:.15s;
+}
+.btn:hover{background:var(--brick-dark);}
+.btn.secondary{background:var(--card); color:var(--ink); border:1px solid var(--line);}
+.btn.secondary:hover{border-color:var(--brick); color:var(--brick);}
+.btn.ghost{background:transparent; color:var(--green); padding:6px 10px; font-weight:700;}
+.btn.danger{background:#a23b3b;}
+.btn.danger:hover{background:#822e2e;}
+.btn.small{padding:6px 12px; font-size:12.5px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px;}
+.flash{padding:11px 16px; border-radius:7px; margin-bottom:16px; font-size:13.5px; font-weight:600;}
+.flash.success{background:#e6efe5; color:#365a3a; border:1px solid #bcd4bb;}
+.flash.danger{background:#fbe6e2; color:#8a3220; border:1px solid #f0bdb0;}
+.kpi-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:14px; margin-bottom:26px;}
+.kpi{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 20px; border-left:4px solid var(--brick);}
+.kpi.alt{border-left-color:var(--green);}
+.kpi.alt2{border-left-color:var(--clay);}
+.kpi .label{font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:700;}
+.kpi .value{font-size:24px; font-weight:800; margin-top:6px;}
+.kpi .value.small{font-size:19px;}
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; padding:10px 12px; background:#efece2; color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; font-weight:700; border-bottom:2px solid var(--line);}
+td{padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:middle;}
+tr:hover td{background:#fbfaf6;}
+.table-wrap{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+.filters{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:18px;}
+.filters form{display:flex; gap:10px; flex-wrap:wrap; align-items:end;}
+.field{display:flex; flex-direction:column; gap:4px;}
+.field label{font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:.3px;}
+input, select, textarea{
+  border:1px solid var(--line); border-radius:6px; padding:9px 11px; font-size:13.5px; font-family:inherit;
+  background:#fff; color:var(--ink);
+}
+input:focus, select:focus, textarea:focus{outline:none; border-color:var(--brick);}
+.form-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
+.form-grid .full{grid-column:1/-1;}
+.badge{padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700;}
+.badge.cours{background:#fdf1dd; color:#946517;}
+.badge.termine{background:#e6efe5; color:#365a3a;}
+.badge.suspendu{background:#fbe6e2; color:#8a3220;}
+.amount{font-weight:700; font-variant-numeric:tabular-nums;}
+.amount.neg{color:#a23b3b;}
+.amount.pos{color:#365a3a;}
+.empty{text-align:center; padding:50px 20px; color:var(--muted);}
+.empty .big{font-size:34px; margin-bottom:8px;}
+.link-row{cursor:pointer;}
+.section-title{font-size:15px; font-weight:800; margin:28px 0 12px;}
+.pill{display:inline-block; background:#efece2; padding:2px 9px; border-radius:5px; font-size:11.5px; font-weight:700; color:var(--clay);}
+@media (max-width:720px){
+  .nav{display:none;}
+  .form-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="sq"></span> GESTION CHANTIERS</div>
+  {% if session.user_id %}
+  <div class="nav">
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">Tableau de bord</a>
+    <a href="{{ url_for('prestataires_list') }}" class="{{ 'active' if 'prestataire' in request.endpoint }}">Prestataires</a>
+    <a href="{{ url_for('achats_list') }}" class="{{ 'active' if 'achat' in request.endpoint }}">Achats</a>
+    {% if session.role=='admin' %}
+    <a href="{{ url_for('utilisateurs_list') }}" class="{{ 'active' if request.endpoint=='utilisateurs_list' }}">Utilisateurs</a>
+    <a href="{{ url_for('chantiers_list') }}" class="{{ 'active' if request.endpoint=='chantiers_list' }}">Chantiers</a>
+    {% endif %}
+  </div>
+  <div class="userbox">
+    <span>{{ session.nom_complet or session.username }}</span>
+    <span class="role-badge {{ 'saisie' if session.role=='saisie' else '' }}">{{ 'Admin' if session.role=='admin' else 'Saisie' }}</span>
+    <a class="logout-btn" href="{{ url_for('logout') }}">Déconnexion</a>
+  </div>
+  {% endif %}
+</div>
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+</body>
+</html>
