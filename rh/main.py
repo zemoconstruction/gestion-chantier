@@ -24,8 +24,12 @@ def main():
         return
     init_db()
     threading.Thread(target=lambda: (time.sleep(1.2), webbrowser.open(f"http://localhost:{PORT}")), daemon=True).start()
-    from waitress import serve
-    serve(app, host="127.0.0.1" if os.environ.get("LOCAL_ONLY") else "0.0.0.0", port=PORT)
+    host = "127.0.0.1" if os.environ.get("LOCAL_ONLY") else "0.0.0.0"
+    try:
+        from waitress import serve
+        serve(app, host=host, port=PORT)
+    except ImportError:          # secours : serveur intégré de Flask
+        app.run(host=host, port=PORT, debug=False)
 
 
 if __name__ == "__main__":

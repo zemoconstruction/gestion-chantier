@@ -12,6 +12,7 @@ import re
 import secrets
 import sqlite3
 import sys
+import threading
 import uuid
 from datetime import date, datetime, timedelta
 from functools import wraps
@@ -28,7 +29,12 @@ if getattr(sys, "frozen", False):
 else:
     RESOURCE_DIR = APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_DIR = os.environ.get("DATA_DIR", os.path.join(APP_DIR, "data"))
+if getattr(sys, "frozen", False):
+    # Version installée : on ne peut pas écrire dans « Program Files », les données vont dans le profil utilisateur.
+    _default_data = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "RHPro", "data")
+else:
+    _default_data = os.path.join(APP_DIR, "data")
+DATA_DIR = os.environ.get("DATA_DIR", _default_data)
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 DB_PATH = os.path.join(DATA_DIR, "rh.db")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -333,6 +339,12 @@ def init_db():
         pwd = secrets.token_urlsafe(9)
         conn.execute("INSERT INTO users (username,password,nom_complet,role,must_change) VALUES (?,?,?,?,1)",
                      ("admin", generate_password_hash(pwd), "Responsable RH", "admin"))
+        try:  # sans console (version installée), le mot de passe est aussi déposé dans un fichier
+            with open(os.path.join(DATA_DIR, "MOT_DE_PASSE_ADMIN.txt"), "w", encoding="utf-8") as fh:
+                fh.write(f"Identifiant : admin\nMot de passe provisoire : {pwd}\n"
+                         "(ce fichier est supprimé dès que vous changez le mot de passe)\n")
+        except OSError:
+            pass
         print("=" * 60)
         print(" Compte créé -> identifiant : admin   mot de passe :", pwd)
         print(" (il vous sera demandé de le changer à la première connexion)")
@@ -556,6 +568,10 @@ def mot_de_passe():
             db.execute("UPDATE users SET password=?, must_change=0 WHERE id=?", (generate_password_hash(new), u["id"]))
             db.commit()
             session["must_change"] = False
+            try:
+                os.remove(os.path.join(DATA_DIR, "MOT_DE_PASSE_ADMIN.txt"))
+            except OSError:
+                pass
             audit("Mot de passe modifié")
             flash("Mot de passe modifié.", "success")
             return redirect(url_for("index"))
@@ -1110,6 +1126,16 @@ def utilisateur_action(uid, action):
 def journal():
     rows = get_db().execute("SELECT * FROM audit ORDER BY id DESC LIMIT 300").fetchall()
     return render_template("journal.html", rows=rows)
+
+
+@app.route("/arreter", methods=["POST"])
+@admin_required
+def arreter():
+    """Arrête le logiciel (utile pour la version installée, qui n'a pas de fenêtre)."""
+    audit("Arrêt du logiciel")
+    threading.Timer(0.8, lambda: os._exit(0)).start()
+    return render_template("message.html", titre="RH Pro est arrêté",
+                           texte="Vous pouvez fermer cet onglet. Relancez le logiciel avec son raccourci.")
 
 
 @app.route("/sauvegarde", methods=["POST"])

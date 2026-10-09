@@ -4,7 +4,11 @@ Logiciel web simple et fluide (Flask + SQLite, aucune base à installer).
 Indépendant de l'application de gestion de chantiers située à la racine du dépôt.
 
 ## Lancer
-- **Windows** : double-cliquez `LANCER_WINDOWS.bat` (ou `FABRIQUER_EXE_WINDOWS.bat` pour obtenir `RHPro.exe`).
+- **Installateur Windows (recommandé)** : `RHPro-Setup.exe` installe le logiciel et crée les raccourcis (Bureau + menu Démarrer).
+  Pour l'obtenir : sur GitHub, onglet *Actions* → « Installateur Windows » → *Run workflow* → téléchargez `RHPro-Setup` dans les artefacts
+  (ou poussez un tag `v1.0` : l'installateur est publié dans *Releases*). Hors GitHub : `CREER_INSTALLATEUR_WINDOWS.bat` sur un PC Windows avec Python et Inno Setup.
+  Version installée : données dans `%LOCALAPPDATA%\RHPro\data`, mot de passe `admin` initial dans `MOT_DE_PASSE_ADMIN.txt` (dans ce dossier), bouton « Quitter » en haut à droite.
+- **Sans installer** : double-cliquez `LANCER_WINDOWS.bat`.
 - **Mac/Linux** : `./lancer_linux_mac.sh`
 - **Manuel** : `pip install -r requirements.txt && python main.py` (ajoutez `--demo` à `python app.py` pour des données d'exemple).
 - **Docker** : `docker build -t rhpro . && docker run -p 5001:5001 -v rhdata:/data rhpro`
