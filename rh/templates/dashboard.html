@@ -7,7 +7,7 @@
  <div class="kpi"><b>{{ kpi.effectif }}</b><span>Effectif actif</span></div>
  <div class="kpi"><b>{{ kpi.absents }}</b><span>Absents aujourd'hui</span></div>
  <div class="kpi"><b><a href="{{ url_for('liste', key='conges', f='En attente') }}">{{ kpi.conges_attente }}</a></b><span>Congés à traiter</span></div>
- <div class="kpi"><b>{{ kpi.candidats }}</b><span>Candidatures en cours</span></div>
+ <div class="kpi"><b>{{ kpi.candidats }}</b><span>Candidatures en cours · {{ kpi.offres }} offre(s) ouverte(s)</span></div>
  <div class="kpi"><b>{{ kpi.turnover }} %</b><span>Turnover</span></div>
  <div class="kpi"><b>{{ kpi.anciennete }} ans</b><span>Ancienneté moyenne</span></div>
  <div class="kpi"><b>{{ kpi.age }} ans</b><span>Âge moyen</span></div>
@@ -26,7 +26,11 @@
   {% for c in alertes.conformite %}<p><span class="b {{ c.statut|badge }}">{{ c.statut }}</span> <a href="{{ url_for('modifier', key='conformite', rid=c.id) }}">{{ c.intitule }}</a> <span class="muted">{{ c.echeance|dfr }}</span></p>{% endfor %}
   {% for d in alertes.declarations %}<p><span class="b warn">{{ d.statut }}</span> <a href="{{ url_for('modifier', key='declarations', rid=d.id) }}">{{ d.type }} {{ d.periode }}</a> <span class="muted">avant le {{ d.echeance|dfr }}</span></p>{% endfor %}
   {% for e in alertes.entretiens %}<p>🗓️ Entretien <a href="{{ url_for('modifier', key='entretiens', rid=e.id) }}">{{ e.cand }}</a> <span class="muted">{{ e.date_heure|dfr }}</span></p>{% endfor %}
-  {% if not (alertes.conformite or alertes.declarations or alertes.entretiens) %}<div class="empty">Rien à signaler 🎉</div>{% endif %}
+  {% for x in alertes.fins %}<p><span class="b warn">Fin de contrat</span> <a href="{{ url_for('employe', eid=x.id) }}">{{ x.prenom }} {{ x.nom }}</a> <span class="muted">{{ x.date_fin_contrat|dfr }}</span></p>{% endfor %}
+  {% for x in alertes.docs %}<p><span class="b warn">Document</span> {{ x.emp }} — {{ x.titre }} <span class="muted">expire le {{ x.date_expiration|dfr }}</span></p>{% endfor %}
+  {% for x in alertes.taches %}<p>✅ {{ x.emp }} — {{ x.tache }} <span class="muted">{{ x.echeance|dfr }}</span></p>{% endfor %}
+  {% if not (alertes.conformite or alertes.declarations or alertes.entretiens or alertes.fins or alertes.docs or alertes.taches) %}<div class="empty">Rien à signaler 🎉</div>{% endif %}
  </div>
 </div>
+{% if alertes.anniv %}<div class="card"><h2>🎂 Anniversaires du mois</h2>{% for x in alertes.anniv %}<span class="b neutral" style="margin:3px">{{ x.date_naissance[8:10] }}/{{ x.date_naissance[5:7] }} · {{ x.prenom }} {{ x.nom }}</span>{% endfor %}</div>{% endif %}
 {% endblock %}

@@ -4,19 +4,23 @@ Logiciel web simple et fluide (Flask + SQLite, aucune base à installer).
 Indépendant de l'application de gestion de chantiers située à la racine du dépôt.
 
 ## Lancer
-```
-cd rh
-pip install -r requirements.txt
-python app.py --demo      # --demo : charge des données d'exemple (optionnel)
-```
-Ouvrez http://localhost:5001. Au premier démarrage, le mot de passe du compte `admin`
-est généré et affiché dans le terminal (à changer via « Mon mot de passe »).
-Variables utiles : `PORT`, `DATA_DIR` (dossier de la base et des fichiers), `SECRET_KEY`.
+- **Windows** : double-cliquez `LANCER_WINDOWS.bat` (ou `FABRIQUER_EXE_WINDOWS.bat` pour obtenir `RHPro.exe`).
+- **Mac/Linux** : `./lancer_linux_mac.sh`
+- **Manuel** : `pip install -r requirements.txt && python main.py` (ajoutez `--demo` à `python app.py` pour des données d'exemple).
+- **Docker** : `docker build -t rhpro . && docker run -p 5001:5001 -v rhdata:/data rhpro`
+
+Ouvrez http://localhost:5001. Au premier démarrage, le mot de passe du compte `admin` est généré et affiché
+dans le terminal ; il vous sera demandé de le changer à la première connexion.
+Variables : `PORT`, `DATA_DIR` (base + fichiers), `SECRET_KEY`, `LOCAL_ONLY=1` (écoute locale uniquement).
+Tests : `pip install -r requirements-dev.txt && pytest tests`.
 
 ## Modules
 | Besoin | Où |
 |---|---|
-| Dossiers employés, accès portail | Employés → fiche |
+| Dossiers employés, hiérarchie, accès portail | Employés → fiche |
+| Contrats, pièces, diplômes (avec alerte d'expiration) | Documents |
+| Checklists d'arrivée et de départ | Intégration & départs |
+| Offres d'emploi ouvertes | Offres d'emploi |
 | Évaluations, feedbacks 1-to-1/360° | Performance |
 | Candidatures, tri/étapes, CV, messages, embauche en un clic | Candidatures |
 | Planification des entretiens | Entretiens |
@@ -32,6 +36,11 @@ Variables utiles : `PORT`, `DATA_DIR` (dossier de la base et des fichiers), `SEC
 | Obligations légales et échéances | Conformité |
 | Portail employé : documents, politiques, annonces | Portail & documents |
 | Recueil des avis (anonyme possible) | Mon espace → Donner mon avis / Feedbacks |
+
+## Professionnel
+- Journal d'activité (qui a fait quoi), gestion des comptes, sauvegarde en un clic, jours fériés pris en compte dans les congés.
+- Sécurité : mots de passe hachés, changement imposé au premier accès, protection CSRF, limitation des tentatives de connexion, session de 8 h, droits par rôle.
+- Alertes du tableau de bord : fins de CDD, documents qui expirent, échéances de conformité et de déclarations, anniversaires.
 
 ## À savoir
 - Rôles : **RH (admin)** a accès à tout ; **employé** voit uniquement son espace (ses congés,

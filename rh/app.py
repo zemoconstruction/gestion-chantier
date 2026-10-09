@@ -37,6 +37,7 @@ app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 
 
 def _secret_key():
@@ -71,8 +72,10 @@ MODULES = {
             F("date_naissance", "Date de naissance", "date"),
             F("adresse", "Adresse"),
             F("poste", "Poste", req=True), F("departement", "Département"),
+            F("manager_id", "Responsable hiérarchique", "fk", EMP),
             F("date_embauche", "Date d'embauche", "date"),
             F("type_contrat", "Type de contrat", "select", ["CDI", "CDD", "Stage", "Intérim", "Consultant"]),
+            F("date_fin_contrat", "Fin de contrat (CDD/stage)", "date"),
             F("salaire_base", "Salaire de base (mensuel)", "number"),
             F("statut", "Statut", "select", ["Actif", "En congé", "Parti"]),
             F("contact_urgence", "Contact d'urgence"),
@@ -81,6 +84,43 @@ MODULES = {
         list=["matricule", "nom", "poste", "departement", "type_contrat", "statut"],
         search=["nom", "prenom", "matricule", "poste", "departement", "email"],
         filter="statut", detail=True, sort="nom"),
+    "documents": dict(
+        table="documents", title="Documents employés", singular="document", icon="📁",
+        fields=[
+            F("employe_id", "Employé", "fk", EMP, True),
+            F("type", "Type", "select", ["Contrat", "Avenant", "Pièce d'identité", "Diplôme", "Attestation", "Certificat médical", "Autre"], True),
+            F("titre", "Titre", "text", None, True),
+            F("fichier", "Fichier", "file"),
+            F("date_expiration", "Date d'expiration", "date"),
+        ],
+        list=["employe_id", "type", "titre", "fichier", "date_expiration"],
+        search=["titre", "type"], filter="type", sort="date_expiration"),
+    "integration": dict(
+        table="integration", title="Intégration & départs", singular="tâche", icon="✅",
+        fields=[
+            F("employe_id", "Employé", "fk", EMP, True),
+            F("type", "Processus", "select", ["Arrivée", "Départ"], True),
+            F("tache", "Tâche", "text", None, True),
+            F("responsable", "Responsable"), F("echeance", "Échéance", "date"),
+            F("fait", "Terminée", "bool"),
+        ],
+        list=["employe_id", "type", "tache", "responsable", "echeance", "fait"],
+        search=["tache", "responsable"], filter="type", sort="echeance"),
+    "offres": dict(
+        table="offres", title="Offres d'emploi", singular="offre", icon="📣",
+        fields=[
+            F("titre", "Intitulé du poste", "text", None, True), F("departement", "Département"),
+            F("nb_postes", "Nombre de postes", "number"),
+            F("statut", "Statut", "select", ["Ouverte", "En pause", "Pourvue", "Clôturée"]),
+            F("date_ouverture", "Date d'ouverture", "date"),
+            F("description", "Description / profil recherché", "textarea"),
+        ],
+        list=["titre", "departement", "nb_postes", "statut", "date_ouverture"],
+        search=["titre", "departement"], filter="statut", sort="date_ouverture DESC"),
+    "feries": dict(
+        table="feries", title="Jours fériés", singular="jour férié", icon="🎌",
+        fields=[F("date", "Date", "date", None, True), F("libelle", "Libellé", "text", None, True)],
+        list=["date", "libelle"], search=["libelle"], sort="date"),
     "evaluations": dict(
         table="evaluations", title="Performance", singular="évaluation", icon="📈",
         fields=[
@@ -266,7 +306,9 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL, nom_complet TEXT,
         role TEXT NOT NULL CHECK(role IN ('admin','employe')),
-        employe_id INTEGER, actif INTEGER DEFAULT 1)""")
+        employe_id INTEGER, actif INTEGER DEFAULT 1, must_change INTEGER DEFAULT 0)""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS audit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, utilisateur TEXT, action TEXT, detail TEXT)""")
     conn.execute("CREATE TABLE IF NOT EXISTS settings (cle TEXT PRIMARY KEY, valeur TEXT)")
     for m in MODULES.values():
         cols = ["id INTEGER PRIMARY KEY AUTOINCREMENT"]
@@ -274,6 +316,14 @@ def init_db():
             cols.append(f'{f["name"]} {SQL_TYPE.get(f["type"], "TEXT")}')
         cols.append("created_at TEXT")
         conn.execute(f'CREATE TABLE IF NOT EXISTS {m["table"]} ({", ".join(cols)})')
+    # migrations légères : colonnes ajoutées après la première version
+    for m in MODULES.values():
+        have = {r[1] for r in conn.execute(f"PRAGMA table_info({m['table']})")}
+        for f in m["fields"]:
+            if f["name"] not in have:
+                conn.execute(f'ALTER TABLE {m["table"]} ADD COLUMN {f["name"]} {SQL_TYPE.get(f["type"], "TEXT")}')
+    if "must_change" not in {r[1] for r in conn.execute("PRAGMA table_info(users)")}:
+        conn.execute("ALTER TABLE users ADD COLUMN must_change INTEGER DEFAULT 0")
     conn.execute("""CREATE TABLE IF NOT EXISTS messages_candidat (
         id INTEGER PRIMARY KEY AUTOINCREMENT, candidat_id INTEGER NOT NULL,
         date TEXT, sujet TEXT, corps TEXT)""")
@@ -281,14 +331,28 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings VALUES (?,?)", (k, v))
     if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
         pwd = secrets.token_urlsafe(9)
-        conn.execute("INSERT INTO users (username,password,nom_complet,role) VALUES (?,?,?,?)",
+        conn.execute("INSERT INTO users (username,password,nom_complet,role,must_change) VALUES (?,?,?,?,1)",
                      ("admin", generate_password_hash(pwd), "Responsable RH", "admin"))
         print("=" * 60)
         print(" Compte créé -> identifiant : admin   mot de passe :", pwd)
-        print(" (changez-le dans « Mon mot de passe » après connexion)")
+        print(" (il vous sera demandé de le changer à la première connexion)")
         print("=" * 60)
+    if conn.execute("SELECT COUNT(*) FROM feries").fetchone()[0] == 0:
+        y = date.today().year
+        for yy in (y, y + 1):
+            for md, lib in (("01-01", "Jour de l'An"), ("05-01", "Fête du Travail"), ("12-25", "Noël")):
+                conn.execute("INSERT INTO feries (date,libelle,created_at) VALUES (?,?,?)",
+                             (f"{yy}-{md}", lib, datetime.now().isoformat()))
     conn.commit()
     conn.close()
+
+
+def audit(action, detail=""):
+    """Journal d'activité : qui a fait quoi."""
+    db = get_db()
+    db.execute("INSERT INTO audit (date,utilisateur,action,detail) VALUES (?,?,?,?)",
+               (datetime.now().isoformat(timespec="seconds"), session.get("nom", "système"), action, detail))
+    db.commit()
 
 
 def settings():
@@ -303,11 +367,11 @@ def fnum(v, default=0.0):
 
 
 # ------------------------------------------------------------------ métier
-def jours_ouvres(d1, d2):
+def jours_ouvres(d1, d2, feries=()):
     d1, d2 = date.fromisoformat(d1), date.fromisoformat(d2)
     n, d = 0, d1
     while d <= d2:
-        if d.weekday() < 5:
+        if d.weekday() < 5 and d.isoformat() not in feries:
             n += 1
         d += timedelta(days=1)
     return float(n)
@@ -316,9 +380,10 @@ def jours_ouvres(d1, d2):
 def pre_conges(d, db, rid=None):
     if d["date_fin"] < d["date_debut"]:
         raise ValueError("La date de fin est antérieure à la date de début.")
-    d["jours"] = jours_ouvres(d["date_debut"], d["date_fin"])
+    feries = {r[0] for r in db.execute("SELECT date FROM feries")}
+    d["jours"] = jours_ouvres(d["date_debut"], d["date_fin"], feries)
     if d["jours"] == 0:
-        raise ValueError("La période ne contient aucun jour ouvré.")
+        raise ValueError("La période ne contient aucun jour ouvré (week-ends et jours fériés exclus).")
     d["statut"] = d.get("statut") or "En attente"
     if d["statut"] != "Refusé":
         q = ("SELECT 1 FROM conges WHERE employe_id=? AND statut!='Refusé' AND id!=? "
@@ -411,6 +476,12 @@ def check_csrf():
             abort(400, "Jeton de sécurité invalide — rechargez la page.")
 
 
+@app.before_request
+def force_password_change():
+    if session.get("must_change") and request.endpoint not in ("mot_de_passe", "logout", "static", "login"):
+        return redirect(url_for("mot_de_passe"))
+
+
 @app.after_request
 def headers(resp):
     resp.headers["X-Content-Type-Options"] = "nosniff"
@@ -451,9 +522,13 @@ def login():
                              (request.form.get("username", "").strip(),)).fetchone()
         if u and check_password_hash(u["password"], request.form.get("password", "")):
             session.clear()
+            session.permanent = True
             session.update(user_id=u["id"], role=u["role"], nom=u["nom_complet"] or u["username"],
-                           employe_id=u["employe_id"])
+                           employe_id=u["employe_id"], must_change=bool(u["must_change"]))
             _fails.pop(ip, None)
+            audit("Connexion")
+            if u["must_change"]:
+                return redirect(url_for("mot_de_passe"))
             return redirect(url_for("dashboard" if u["role"] == "admin" else "portail"))
         _fails[ip] = recent + [now]
         flash("Identifiant ou mot de passe incorrect.", "danger")
@@ -478,8 +553,10 @@ def mot_de_passe():
         elif len(new) < 8:
             flash("Le nouveau mot de passe doit contenir au moins 8 caractères.", "danger")
         else:
-            db.execute("UPDATE users SET password=? WHERE id=?", (generate_password_hash(new), u["id"]))
+            db.execute("UPDATE users SET password=?, must_change=0 WHERE id=?", (generate_password_hash(new), u["id"]))
             db.commit()
+            session["must_change"] = False
+            audit("Mot de passe modifié")
             flash("Mot de passe modifié.", "success")
             return redirect(url_for("index"))
     return render_template("password.html")
@@ -574,6 +651,7 @@ def dashboard():
         absents=q("SELECT COUNT(DISTINCT employe_id) FROM conges WHERE statut='Approuvé' AND date_debut<=? AND date_fin>=?",
                   today.isoformat(), today.isoformat()),
         candidats=q("SELECT COUNT(*) FROM candidats WHERE etape NOT IN ('Embauché','Refusé')"),
+        offres=q("SELECT COUNT(*) FROM offres WHERE statut='Ouverte'"),
         budget_formation=q("SELECT COALESCE(SUM(cout),0) FROM formations WHERE statut!='Annulée' AND substr(date_debut,1,4)=?", str(today.year)),
         satisfaction=round(q("SELECT COALESCE(AVG(note),0) FROM feedbacks WHERE note>0"), 2),
     )
@@ -590,7 +668,15 @@ def dashboard():
         declarations=db.execute("SELECT * FROM declarations WHERE statut IN ('À préparer','Préparée') ORDER BY echeance LIMIT 5").fetchall(),
         entretiens=db.execute("SELECT e.*, c.prenom||' '||c.nom AS cand FROM entretiens e JOIN candidats c ON c.id=e.candidat_id "
                               "WHERE e.statut='Planifié' AND e.date_heure>=? ORDER BY e.date_heure LIMIT 5", (today.isoformat(),)).fetchall(),
-        essais=db.execute("SELECT * FROM employes WHERE type_contrat='CDD' AND statut!='Parti' LIMIT 0").fetchall(),
+        fins=db.execute("SELECT * FROM employes WHERE statut!='Parti' AND date_fin_contrat!='' AND date_fin_contrat BETWEEN ? AND ? ORDER BY date_fin_contrat",
+                        (today.isoformat(), (today + timedelta(days=60)).isoformat())).fetchall(),
+        docs=db.execute("SELECT d.*, e.prenom||' '||e.nom AS emp FROM documents d JOIN employes e ON e.id=d.employe_id "
+                        "WHERE d.date_expiration!='' AND d.date_expiration<=? ORDER BY d.date_expiration LIMIT 6",
+                        ((today + timedelta(days=60)).isoformat(),)).fetchall(),
+        anniv=db.execute("SELECT * FROM employes WHERE statut!='Parti' AND substr(date_naissance,6,2)=? ORDER BY substr(date_naissance,9,2)",
+                         (today.strftime("%m"),)).fetchall(),
+        taches=db.execute("SELECT i.*, e.prenom||' '||e.nom AS emp FROM integration i JOIN employes e ON e.id=i.employe_id "
+                          "WHERE i.fait=0 ORDER BY i.echeance LIMIT 5").fetchall(),
     )
     return render_template("dashboard.html", kpi=kpi, charts=charts, alertes=alertes)
 
@@ -712,6 +798,7 @@ def _save(key, rid=None):
     db.commit()
     for up, name in files.values():
         up.save(os.path.join(UPLOAD_DIR, name))
+    audit(("Modification " if existing else "Création ") + m["singular"], f"{key} #{rid}")
     return rid
 
 
@@ -753,6 +840,7 @@ def supprimer(key, rid):
     m = _module(key)
     get_db().execute(f"DELETE FROM {m['table']} WHERE id=?", (rid,))
     get_db().commit()
+    audit("Suppression " + m["singular"], f"{key} #{rid}")
     flash("Élément supprimé.", "success")
     return redirect(request.form.get("next") or url_for("liste", key=key))
 
@@ -779,7 +867,10 @@ def employe(eid):
     return render_template("employe.html", e=e, compte=compte, solde=solde_conges(eid),
                            evals=rel("evaluations", "date DESC"), conges=rel("conges", "date_debut DESC"),
                            forms=rel("formations", "date_debut DESC"), comps=rel("competences", "competence"),
-                           paies=rel("paies", "periode DESC"))
+                           paies=rel("paies", "periode DESC"), docs=rel("documents", "type"),
+                           taches=rel("integration", "echeance"),
+                           manager=db.execute("SELECT id, prenom||' '||nom AS n FROM employes WHERE id=?", (e["manager_id"],)).fetchone(),
+                           equipe=db.execute("SELECT id, prenom, nom, poste FROM employes WHERE manager_id=? AND statut!='Parti'", (eid,)).fetchall())
 
 
 @app.route("/employes/<int:eid>/acces", methods=["POST"])
@@ -796,9 +887,10 @@ def creer_acces(eid):
     if db.execute("SELECT 1 FROM users WHERE employe_id=?", (eid,)).fetchone():
         flash("Cet employé a déjà un accès.", "danger")
     else:
-        db.execute("INSERT INTO users (username,password,nom_complet,role,employe_id) VALUES (?,?,?,?,?)",
+        db.execute("INSERT INTO users (username,password,nom_complet,role,employe_id,must_change) VALUES (?,?,?,?,?,1)",
                    (username, generate_password_hash(pwd), f"{e['prenom']} {e['nom']}", "employe", eid))
         db.commit()
+        audit("Accès portail créé", username)
         flash(f"Accès créé — identifiant : {username} · mot de passe provisoire : {pwd} (à communiquer à l'employé).", "success")
     return redirect(url_for("employe", eid=eid))
 
@@ -808,8 +900,9 @@ def creer_acces(eid):
 def reinit_acces(eid):
     pwd = secrets.token_urlsafe(8)
     db = get_db()
-    db.execute("UPDATE users SET password=? WHERE employe_id=?", (generate_password_hash(pwd), eid))
+    db.execute("UPDATE users SET password=?, must_change=1 WHERE employe_id=?", (generate_password_hash(pwd), eid))
     db.commit()
+    audit("Mot de passe réinitialisé", f"employé #{eid}")
     flash(f"Nouveau mot de passe provisoire : {pwd}", "success")
     return redirect(url_for("employe", eid=eid))
 
@@ -856,7 +949,8 @@ def decision_conge(cid):
     db.execute("UPDATE conges SET statut=?, commentaire_rh=? WHERE id=?",
                (statut, request.form.get("commentaire", "").strip(), cid))
     db.commit()
-    flash(f"Demande {statut.lower()}e.".replace("Approuvée", "approuvée"), "success")
+    audit("Congé " + statut.lower(), f"demande #{cid}")
+    flash("Demande approuvée." if statut == "Approuvé" else "Demande refusée.", "success")
     return redirect(request.form.get("next") or url_for("liste", key="conges"))
 
 
@@ -908,6 +1002,7 @@ def generer_paie():
                     d["cot_pat"], "Brouillon", datetime.now().isoformat()))
         n += 1
     db.commit()
+    audit("Génération de paie", f"{periode} : {n} ligne(s)")
     flash(f"{n} ligne(s) de paie générée(s) pour {periode}. Ajoutez les primes puis validez.", "success")
     return redirect(url_for("liste", key="paies", q=periode))
 
@@ -921,6 +1016,7 @@ def valider_paie():
     db = get_db()
     db.execute("UPDATE paies SET statut=? WHERE periode=? AND statut!='Payée'", (st, p))
     db.commit()
+    audit("Paie " + st.lower(), p)
     flash(f"Paie {p} : {st.lower()}.", "success")
     return redirect(url_for("liste", key="paies", q=p))
 
@@ -958,6 +1054,72 @@ def generer_declarations():
     db.commit()
     flash("Déclarations préparées à partir de la paie validée.", "success")
     return redirect(url_for("liste", key="declarations"))
+
+
+@app.route("/utilisateurs")
+@admin_required
+def utilisateurs():
+    users = get_db().execute("SELECT u.*, e.prenom||' '||e.nom AS emp FROM users u LEFT JOIN employes e ON e.id=u.employe_id ORDER BY role, username").fetchall()
+    return render_template("utilisateurs.html", users=users)
+
+
+@app.route("/utilisateurs/nouveau", methods=["POST"])
+@admin_required
+def utilisateur_nouveau():
+    db = get_db()
+    nom, username = request.form.get("nom", "").strip(), request.form.get("username", "").strip().lower()
+    if not nom or not re.fullmatch(r"[a-z0-9._-]{3,30}", username):
+        flash("Nom requis ; identifiant de 3 à 30 caractères (lettres, chiffres, . _ -).", "danger")
+    elif db.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
+        flash("Cet identifiant existe déjà.", "danger")
+    else:
+        pwd = secrets.token_urlsafe(8)
+        db.execute("INSERT INTO users (username,password,nom_complet,role,must_change) VALUES (?,?,?,'admin',1)",
+                   (username, generate_password_hash(pwd), nom))
+        db.commit()
+        audit("Utilisateur RH créé", username)
+        flash(f"Compte RH créé — identifiant : {username} · mot de passe provisoire : {pwd}", "success")
+    return redirect(url_for("utilisateurs"))
+
+
+@app.route("/utilisateurs/<int:uid>/<action>", methods=["POST"])
+@admin_required
+def utilisateur_action(uid, action):
+    db = get_db()
+    u = db.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone() or abort(404)
+    if action == "toggle":
+        if uid == session["user_id"]:
+            flash("Vous ne pouvez pas désactiver votre propre compte.", "danger")
+        else:
+            db.execute("UPDATE users SET actif=1-actif WHERE id=?", (uid,))
+            audit("Compte activé/désactivé", u["username"])
+            flash("Compte mis à jour.", "success")
+    elif action == "reinit":
+        pwd = secrets.token_urlsafe(8)
+        db.execute("UPDATE users SET password=?, must_change=1 WHERE id=?", (generate_password_hash(pwd), uid))
+        audit("Mot de passe réinitialisé", u["username"])
+        flash(f"Mot de passe provisoire de {u['username']} : {pwd}", "success")
+    else:
+        abort(404)
+    db.commit()
+    return redirect(url_for("utilisateurs"))
+
+
+@app.route("/journal")
+@admin_required
+def journal():
+    rows = get_db().execute("SELECT * FROM audit ORDER BY id DESC LIMIT 300").fetchall()
+    return render_template("journal.html", rows=rows)
+
+
+@app.route("/sauvegarde", methods=["POST"])
+@admin_required
+def sauvegarde():
+    audit("Sauvegarde téléchargée")
+    data = get_db().serialize()
+    name = f"rh_sauvegarde_{datetime.now():%Y%m%d_%H%M}.db"
+    return Response(bytes(data), mimetype="application/octet-stream",
+                    headers={"Content-Disposition": f"attachment; filename={name}"})
 
 
 @app.route("/parametres", methods=["GET", "POST"])
@@ -1130,6 +1292,13 @@ def seed_demo():
                           ("Affichage du règlement intérieur", "Droit du travail", "Conforme", 200), ("Formation sécurité sur chantier", "Sécurité & santé", "À faire", 45)]:
         db.execute("INSERT INTO conformite (intitule,categorie,responsable,echeance,statut,created_at) VALUES (?,?,?,?,?,?)",
                    (t, c, "Fatou Sow", (today + timedelta(days=ech)).isoformat(), st, now))
+    db.execute("UPDATE employes SET manager_id=1 WHERE id IN (2,3,4,6)")
+    db.execute("UPDATE employes SET manager_id=4 WHERE id IN (5,8)")
+    db.execute("UPDATE employes SET manager_id=2 WHERE id=7")
+    db.execute("UPDATE employes SET date_fin_contrat=? WHERE id=6", ((today + timedelta(days=30)).isoformat(),))
+    db.execute("INSERT INTO offres (titre,departement,nb_postes,statut,date_ouverture,created_at) VALUES ('Chef de chantier','Technique',1,'Ouverte',?,?)", (today.isoformat(), now))
+    db.execute("INSERT INTO documents (employe_id,type,titre,date_expiration,created_at) VALUES (6,'Contrat','Contrat CDD Paul Mbarga',?,?)", ((today + timedelta(days=30)).isoformat(), now))
+    db.execute("INSERT INTO integration (employe_id,type,tache,responsable,echeance,fait,created_at) VALUES (8,'Arrivée','Remettre les EPI et le badge','Fatou Sow',?,0,?)", (today.isoformat(), now))
     db.execute("INSERT INTO annonces (titre,categorie,contenu,date,created_at) VALUES ('Règlement intérieur','Règlement','Horaires : 8h-17h du lundi au vendredi. Port des EPI obligatoire sur chantier.',?,?)", (today.isoformat(), now))
     db.execute("INSERT INTO annonces (titre,categorie,contenu,date,created_at) VALUES ('Fermeture de fin d''année','Annonce','Les bureaux seront fermés du 24 au 31 décembre.',?,?)", (today.isoformat(), now))
     db.execute("INSERT INTO feedbacks (auteur,categorie,note,message,date,traite,created_at) VALUES ('Anonyme','Conditions de travail',3,'Prévoir des casques en plus grand nombre.',?,0,?)", (today.isoformat(), now))

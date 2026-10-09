@@ -59,10 +59,13 @@ input[type=checkbox]{width:auto}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-
   {{ item(url_for('dashboard'),'📊','Tableau de bord', ep=='dashboard') }}
   <h6>Personnel</h6>
   {{ item(url_for('liste',key='employes'),'👥','Employés', k=='employes' or ep=='employe') }}
+  {{ item(url_for('liste',key='documents'),'📁','Documents', k=='documents') }}
+  {{ item(url_for('liste',key='integration'),'✅','Intégration & départs', k=='integration') }}
   {{ item(url_for('liste',key='evaluations'),'📈','Performance', k=='evaluations') }}
   {{ item(url_for('liste',key='conges'),'🌴','Congés', k=='conges', pending) }}
   {{ item(url_for('calendrier'),'📅','Calendrier absences', ep=='calendrier') }}
   <h6>Recrutement</h6>
+  {{ item(url_for('liste',key='offres'),'📣','Offres d\'emploi', k=='offres') }}
   {{ item(url_for('liste',key='candidats'),'🎯','Candidatures', k=='candidats' or ep=='candidat') }}
   {{ item(url_for('liste',key='entretiens'),'🗓️','Entretiens', k=='entretiens') }}
   <h6>Paie</h6>
@@ -77,7 +80,11 @@ input[type=checkbox]{width:auto}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-
   {{ item(url_for('liste',key='conformite'),'🛡️','Conformité', k=='conformite') }}
   {{ item(url_for('liste',key='annonces'),'📢','Portail & documents', k=='annonces') }}
   {{ item(url_for('liste',key='feedbacks'),'💬','Feedbacks', k=='feedbacks') }}
-  {{ item(url_for('parametres'),'⚙️','Paramètres', ep=='parametres') }}
+  <h6>Administration</h6>
+  {{ item(url_for('parametres'),'⚙️','Paramètres & sauvegarde', ep=='parametres') }}
+  {{ item(url_for('liste',key='feries'),'🎌','Jours fériés', k=='feries') }}
+  {{ item(url_for('utilisateurs'),'🔐','Utilisateurs', ep=='utilisateurs') }}
+  {{ item(url_for('journal'),'🕘','Journal d\'activité', ep=='journal') }}
  {% else %}
   {{ item(url_for('portail'),'🏠','Mon espace', ep=='portail') }}
   {{ item(url_for('calendrier'),'📅','Calendrier équipe', ep=='calendrier') }}

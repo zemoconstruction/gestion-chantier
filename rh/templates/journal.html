@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block title %}Journal d'activité{% endblock %}
+{% block body %}<h1>🕘 Journal d'activité</h1><p class="sub">Les 300 dernières actions (connexions, créations, modifications, suppressions, paie…).</p>
+<div class="card tw"><table><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Détail</th></tr>
+{% for r in rows %}<tr><td>{{ r.date|dfr }}</td><td>{{ r.utilisateur }}</td><td>{{ r.action }}</td><td class="muted">{{ r.detail }}</td></tr>{% else %}<tr><td colspan="4" class="empty">Aucune activité</td></tr>{% endfor %}</table></div>{% endblock %}
