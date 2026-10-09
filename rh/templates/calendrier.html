@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}Calendrier des absences{% endblock %}
+{% block body %}
+<div class="head"><div><h1>📅 Calendrier des absences</h1><p class="sub" style="margin:0">{{ titre }}</p></div>
+<form class="bar" method="get" style="margin:0"><a class="btn s" href="?mois={{ prev }}&dept={{ dept }}">←</a><a class="btn s" href="?mois={{ nxt }}&dept={{ dept }}">→</a>
+<select name="dept" onchange="this.form.submit()"><option value="">Tous les départements</option>{% for d in depts %}<option {{ 'selected' if d==dept }}>{{ d }}</option>{% endfor %}</select><input type="hidden" name="mois" value="{{ days[0].strftime('%Y-%m') }}"></form></div>
+<p class="muted"><span class="b" style="background:#6366f1;color:#fff">Congé approuvé</span> <span class="b" style="background:#fbbf24">En attente</span> <span class="b" style="background:#ef4444;color:#fff">Maladie</span></p>
+<div class="card tw"><table class="cal"><tr><th></th>{% for d in days %}<th class="{{ 'we' if d.weekday()>4 }}">{{ d.day }}<br>{{ 'LMMJVSD'[d.weekday()] }}</th>{% endfor %}</tr>
+{% for e in emps %}<tr><td class="n">{{ e.prenom }} {{ e.nom }}</td>{% for d in days %}{% set a = grid.get((e.id, d.isoformat())) %}
+<td class="{{ 'we' if d.weekday()>4 }} {% if a %}{{ 'm' if a.type=='Maladie' else ('a' if a.statut=='Approuvé' else 'p') }}{% endif %}" {% if a %}title="{{ a.type }} ({{ a.statut }}) {{ a.date_debut|dfr }} → {{ a.date_fin|dfr }}"{% endif %}></td>{% endfor %}</tr>
+{% else %}<tr><td class="empty">Aucun employé</td></tr>{% endfor %}</table></div>
+{% endblock %}
