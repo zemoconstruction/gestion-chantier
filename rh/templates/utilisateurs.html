@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Utilisateurs{% endblock %}
+{% block body %}<h1>🔐 Utilisateurs</h1><p class="sub">Comptes RH et accès au portail employé. Les mots de passe provisoires doivent être changés à la première connexion.</p>
+<div class="card tw"><table><tr><th>Identifiant</th><th>Nom</th><th>Rôle</th><th>Statut</th><th></th></tr>
+{% for u in users %}<tr><td><b>{{ u.username }}</b></td><td>{{ u.nom_complet }}</td><td>{{ 'RH' if u.role=='admin' else 'Employé' }}</td><td><span class="b {{ 'ok' if u.actif else 'bad' }}">{{ 'Actif' if u.actif else 'Désactivé' }}</span></td>
+<td class="act"><form method="post" action="{{ url_for('utilisateur_action', uid=u.id, action='reinit') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn sm s">Réinitialiser le mot de passe</button></form>
+<form method="post" action="{{ url_for('utilisateur_action', uid=u.id, action='toggle') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn sm s">{{ 'Désactiver' if u.actif else 'Réactiver' }}</button></form></td></tr>{% endfor %}</table></div>
+<form method="post" action="{{ url_for('utilisateur_nouveau') }}" class="card"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><h2>Ajouter un compte RH</h2>
+<div class="fg"><div><label>Nom complet</label><input name="nom" required></div><div><label>Identifiant</label><input name="username" required pattern="[a-zA-Z0-9._-]{3,30}"></div></div><br><button class="btn">Créer</button></form>{% endblock %}

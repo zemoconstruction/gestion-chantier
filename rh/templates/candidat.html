@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block title %}{{ c.prenom }} {{ c.nom }}{% endblock %}
+{% block body %}
+<div class="head"><div><h1>{{ c.prenom }} {{ c.nom }}</h1><p class="sub" style="margin:0">{{ c.poste_vise }} · {{ c.source }} · reçu le {{ c.date_candidature|dfr }}</p></div>
+<div class="bar noprint" style="margin:0"><a class="btn s" href="{{ url_for('modifier', key='candidats', rid=c.id) }}">Modifier</a>
+{% if c.cv %}<a class="btn s" href="{{ url_for('fichier', name=c.cv) }}">📄 CV</a>{% endif %}
+<a class="btn" href="{{ url_for('nouveau', key='entretiens', candidat_id=c.id) }}">🗓️ Planifier un entretien</a></div></div>
+<div class="grid g2">
+<div class="card"><h2>Suivi</h2><dl class="dl"><dt>Étape</dt><dd><span class="b {{ c.etape|badge }}">{{ c.etape }}</span></dd><dt>Note</dt><dd>{{ c.note or '—' }} / 5</dd><dt>Email</dt><dd>{{ c.email or '—' }}</dd><dt>Téléphone</dt><dd>{{ c.telephone or '—' }}</dd><dt>Commentaires</dt><dd>{{ c.commentaires or '—' }}</dd></dl><br>
+<form method="post" class="bar"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="etape"><select name="etape">{% for e in etapes %}<option {{ 'selected' if e==c.etape }}>{{ e }}</option>{% endfor %}</select><button class="btn s">Changer l'étape</button></form>
+{% if c.etape!='Embauché' %}<form method="post" onsubmit="return confirm('Créer la fiche employé à partir de ce candidat ?')"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="embaucher"><button class="btn ok">✔ Embaucher (créer la fiche employé)</button></form>{% endif %}</div>
+<div class="card"><h2>Entretiens</h2>{% for e in entretiens %}<p><span class="b {{ e.statut|badge }}">{{ e.statut }}</span> {{ e.date_heure|dfr }} · {{ e.type }} · {{ e.intervieweur or '' }} <a href="{{ url_for('modifier', key='entretiens', rid=e.id) }}">éditer</a><br><span class="muted">{{ e.feedback or '' }}</span></p>{% else %}<div class="empty">Aucun entretien</div>{% endfor %}</div></div>
+<div class="card"><h2>Communication avec le candidat</h2>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="message">
+<div class="fg"><div><label>Objet</label><input name="sujet" value="Votre candidature – {{ c.poste_vise }}"></div><div class="full"><label>Message</label><textarea name="corps" rows="4" placeholder="Bonjour {{ c.prenom }}, …" required></textarea></div></div><br>
+<button class="btn s">Enregistrer dans l'historique</button>
+{% if c.email %}<button class="btn" type="button" onclick="var f=this.form;location.href='mailto:{{ c.email }}?subject='+encodeURIComponent(f.sujet.value)+'&body='+encodeURIComponent(f.corps.value)">✉️ Ouvrir dans ma messagerie</button>{% endif %}</form><br>
+{% for m in msgs %}<p><span class="muted">{{ m.date|dfr }}</span> · <b>{{ m.sujet }}</b><br>{{ m.corps }}</p>{% endfor %}</div>
+{% endblock %}

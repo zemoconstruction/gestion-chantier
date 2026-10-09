@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block title %}Bulletin {{ p.periode }}{% endblock %}
+{% block body %}
+<div class="noprint"><a class="btn" href="javascript:print()">🖨 Imprimer / PDF</a></div><br>
+<div class="card" style="max-width:760px">
+<h1>Bulletin de paie — {{ p.periode }}</h1><p class="sub">{{ cfg.entreprise }}</p>
+<dl class="dl"><dt>Employé</dt><dd><b>{{ e.prenom }} {{ e.nom }}</b> ({{ e.matricule or '—' }})</dd><dt>Poste</dt><dd>{{ e.poste }}</dd><dt>Contrat</dt><dd>{{ e.type_contrat }}</dd></dl><br>
+<table><tr><th>Rubrique</th><th style="text-align:right">Montant</th></tr>
+<tr><td>Salaire de base</td><td style="text-align:right">{{ p.salaire_base|money }}</td></tr>
+<tr><td>Primes</td><td style="text-align:right">{{ p.primes|money }}</td></tr>
+<tr><td>Heures supplémentaires</td><td style="text-align:right">{{ p.heures_sup|money }}</td></tr>
+<tr><td><b>Salaire brut</b></td><td style="text-align:right"><b>{{ p.brut|money }}</b></td></tr>
+<tr><td>Cotisations salariales ({{ cfg.cot_sal }} %)</td><td style="text-align:right">− {{ p.cot_sal|money }}</td></tr>
+<tr><td>Impôt sur salaire</td><td style="text-align:right">− {{ p.impot|money }}</td></tr>
+<tr><td>Autres retenues / avances</td><td style="text-align:right">− {{ p.retenues|money }}</td></tr>
+<tr><td><b>NET À PAYER</b></td><td style="text-align:right"><b style="font-size:19px">{{ p.net|money }}</b></td></tr></table>
+<p class="muted">Charges patronales (information employeur) : {{ p.cot_pat|money }}. Statut : {{ p.statut }}.</p></div>
+{% endblock %}

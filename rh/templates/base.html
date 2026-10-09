@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}RH Pro{% endblock %}</title>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--ink:#1b2033;--muted:#6b7285;--line:#e4e7ef;--brand:#4f46e5;--brand-d:#4338ca;--brand-l:#eef0ff;--ok:#16a34a;--okb:#e6f6ec;--warn:#b45309;--warnb:#fef3c7;--bad:#dc2626;--badb:#fde8e8;--side:#151a2e}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1220;--card:#181c30;--ink:#e8eaf3;--muted:#98a0b8;--line:#2a2f48;--brand-l:#25285a;--okb:#12301f;--warnb:#3a2c0a;--badb:#3b1616;--side:#0a0d1a}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
+.layout{display:flex;min-height:100vh}
+.side{width:236px;background:var(--side);color:#c9cde0;padding:18px 12px;position:sticky;top:0;height:100vh;overflow:auto;flex-shrink:0}
+.side .logo{color:#fff;font-weight:800;font-size:19px;padding:4px 10px 16px;display:flex;gap:8px;align-items:center}
+.side .logo i{width:26px;height:26px;border-radius:8px;background:var(--brand);display:inline-block}
+.side h6{margin:16px 10px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6f7696}
+.side a{display:flex;gap:9px;align-items:center;color:#c9cde0;padding:7px 10px;border-radius:8px;font-size:14px}
+.side a:hover{background:rgba(255,255,255,.07);text-decoration:none}.side a.on{background:var(--brand);color:#fff}
+.side .n{margin-left:auto;background:#f59e0b;color:#000;border-radius:99px;font-size:11px;padding:0 7px;font-weight:700}
+.main{flex:1;min-width:0}
+.top{display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:12px 28px;font-size:13px;color:var(--muted)}
+.wrap{padding:4px 28px 50px;max-width:1280px}
+h1{font-size:25px;margin:6px 0 2px;letter-spacing:-.02em}h2{font-size:17px;margin:0 0 12px}.sub{color:var(--muted);margin:0 0 20px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:18px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+.kpi b{display:block;font-size:26px;letter-spacing:-.02em}.kpi span{color:var(--muted);font-size:12.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff!important;border:0;border-radius:9px;padding:8px 15px;font:600 14px inherit;cursor:pointer;text-decoration:none!important}
+.btn:hover{background:var(--brand-d)}.btn.s{background:var(--card);color:var(--ink)!important;border:1px solid var(--line)}.btn.d{background:var(--bad)}.btn.sm{padding:4px 10px;font-size:12.5px}.btn.ok{background:var(--ok)}
+table{width:100%;border-collapse:collapse}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:9px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}tr:hover td{background:var(--brand-l)}
+.tw{overflow-x:auto}.act{white-space:nowrap;text-align:right}.act form{display:inline}
+.b{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.b.ok{background:var(--okb);color:var(--ok)}.b.warn{background:var(--warnb);color:var(--warn)}.b.bad{background:var(--badb);color:var(--bad)}.b.neutral{background:var(--brand-l);color:var(--brand)}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);outline-offset:-1px}
+label{font-size:13px;font-weight:600;display:block;margin-bottom:4px}.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.full{grid-column:1/-1}
+input[type=checkbox]{width:auto}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.bar input,.bar select{width:auto;min-width:180px}
+.flash{padding:10px 14px;border-radius:10px;margin-bottom:14px;font-weight:500}.flash.success{background:var(--okb);color:var(--ok)}.flash.danger{background:var(--badb);color:var(--bad)}
+.hb{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13.5px}.hb .l{width:150px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .t{flex:1;background:var(--brand-l);border-radius:6px;height:14px}.hb .t i{display:block;height:100%;background:var(--brand);border-radius:6px}.hb .v{width:70px;font-weight:600;text-align:right}
+.muted{color:var(--muted)}.empty{color:var(--muted);padding:18px;text-align:center}
+.dl{display:grid;grid-template-columns:150px 1fr;gap:6px 14px;margin:0}.dl dt{color:var(--muted)}.dl dd{margin:0}
+.cal td,.cal th{padding:3px;text-align:center;font-size:11px;min-width:24px;border:1px solid var(--line)}.cal td.n{text-align:left;font-size:13px;white-space:nowrap;padding:4px 8px;min-width:150px}
+.cal .we{background:var(--brand-l)}.cal .a{background:#6366f1;color:#fff}.cal .p{background:#fbbf24}.cal .m{background:#ef4444}.cal tr:hover td{background:inherit}
+@media(max-width:820px){.layout{display:block}.side{width:100%;height:auto;position:static;display:flex;flex-wrap:wrap;gap:2px}.side h6{display:none}.wrap,.top{padding-left:14px;padding-right:14px}}
+@media print{.side,.top,.noprint{display:none!important}.wrap{padding:0}.card{border:0}}
+</style>
+</head>
+<body>
+{% if session.user_id %}
+<div class="layout">
+<nav class="side">
+ <div class="logo"><i></i> RH Pro</div>
+ {% set ep = request.endpoint %}{% set k = request.view_args.key if request.view_args else None %}
+ {% macro item(href, ic, label, on, n=0) %}<a href="{{ href }}" class="{{ 'on' if on }}">{{ ic }} {{ label }}{% if n %}<span class="n">{{ n }}</span>{% endif %}</a>{% endmacro %}
+ {% if session.role == 'admin' %}
+  {{ item(url_for('dashboard'),'📊','Tableau de bord', ep=='dashboard') }}
+  <h6>Personnel</h6>
+  {{ item(url_for('liste',key='employes'),'👥','Employés', k=='employes' or ep=='employe') }}
+  {{ item(url_for('liste',key='documents'),'📁','Documents', k=='documents') }}
+  {{ item(url_for('liste',key='integration'),'✅','Intégration & départs', k=='integration') }}
+  {{ item(url_for('liste',key='evaluations'),'📈','Performance', k=='evaluations') }}
+  {{ item(url_for('liste',key='conges'),'🌴','Congés', k=='conges', pending) }}
+  {{ item(url_for('calendrier'),'📅','Calendrier absences', ep=='calendrier') }}
+  <h6>Recrutement</h6>
+  {{ item(url_for('liste',key='offres'),'📣','Offres d\'emploi', k=='offres') }}
+  {{ item(url_for('liste',key='candidats'),'🎯','Candidatures', k=='candidats' or ep=='candidat') }}
+  {{ item(url_for('liste',key='entretiens'),'🗓️','Entretiens', k=='entretiens') }}
+  <h6>Paie</h6>
+  {{ item(url_for('liste',key='paies'),'💶','Paie', k=='paies') }}
+  {{ item(url_for('liste',key='declarations'),'🏛️','Déclarations', k=='declarations') }}
+  <h6>Talents</h6>
+  {{ item(url_for('liste',key='formations'),'🎓','Formations', k=='formations') }}
+  {{ item(url_for('liste',key='competences'),'🧩','Compétences', k=='competences') }}
+  {{ item(url_for('liste',key='talents'),'⭐','Plan de succession', k=='talents') }}
+  <h6>Pilotage</h6>
+  {{ item(url_for('rapports'),'🧾','Rapports', ep=='rapports') }}
+  {{ item(url_for('liste',key='conformite'),'🛡️','Conformité', k=='conformite') }}
+  {{ item(url_for('liste',key='annonces'),'📢','Portail & documents', k=='annonces') }}
+  {{ item(url_for('liste',key='feedbacks'),'💬','Feedbacks', k=='feedbacks') }}
+  <h6>Administration</h6>
+  {{ item(url_for('parametres'),'⚙️','Paramètres & sauvegarde', ep=='parametres') }}
+  {{ item(url_for('liste',key='feries'),'🎌','Jours fériés', k=='feries') }}
+  {{ item(url_for('utilisateurs'),'🔐','Utilisateurs', ep=='utilisateurs') }}
+  {{ item(url_for('journal'),'🕘','Journal d\'activité', ep=='journal') }}
+ {% else %}
+  {{ item(url_for('portail'),'🏠','Mon espace', ep=='portail') }}
+  {{ item(url_for('calendrier'),'📅','Calendrier équipe', ep=='calendrier') }}
+ {% endif %}
+</nav>
+<div class="main">
+ <div class="top"><span>{{ session.nom }} · {{ 'RH' if session.role=='admin' else 'Employé' }}</span><a href="{{ url_for('mot_de_passe') }}">Mon mot de passe</a><a href="{{ url_for('logout') }}">Déconnexion</a>{% if session.role=='admin' %}<form method="post" action="{{ url_for('arreter') }}" style="display:inline" onsubmit="return confirm('Arrêter le logiciel pour tous les utilisateurs ?')"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button style="background:none;border:0;color:var(--muted);cursor:pointer;font:inherit">Quitter</button></form>{% endif %}</div>
+ <div class="wrap">
+{% else %}<div class="wrap" style="max-width:420px;margin:8vh auto">{% endif %}
+ {% for c, m in get_flashed_messages(with_categories=true) %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
+ {% block body %}{% endblock %}
+{% if session.user_id %}</div></div></div>{% else %}</div>{% endif %}
+</body></html>

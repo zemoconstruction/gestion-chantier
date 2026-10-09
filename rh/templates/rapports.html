@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}Rapports{% endblock %}
+{% block body %}
+<h1>🧾 Rapports personnalisés</h1><p class="sub">Choisissez un sujet, les colonnes à afficher, puis exportez en Excel (CSV) ou imprimez.</p>
+<form method="get" class="card noprint"><div class="fg">
+<div><label>Sujet du rapport</label><select name="module" onchange="this.form.querySelectorAll('[name=col]').forEach(c=>c.checked=false);this.form.submit()">{% for k,mm in MODULES.items() %}<option value="{{ k }}" {{ 'selected' if k==key }}>{{ mm.title }}</option>{% endfor %}</select></div>
+<div><label>Recherche</label><input name="q" value="{{ q }}" placeholder="Mot-clé"></div>
+<div class="full"><label>Colonnes</label>{% for f in fields %}<label style="display:inline-block;margin-right:14px;font-weight:400"><input type="checkbox" name="col" value="{{ f.name }}" {{ 'checked' if f.name in chosen }}> {{ f.label }}</label>{% endfor %}</div></div><br>
+<button class="btn">Générer</button> <button class="btn s" name="csv" value="1">⬇ Export CSV</button> <a class="btn s" href="javascript:print()">🖨 Imprimer</a></form>
+<div class="card tw"><h2>{{ m.title }} — {{ rows|length }} ligne(s)</h2>
+<table><tr>{% for f in cols %}<th>{{ f.label }}</th>{% endfor %}</tr>
+{% for r in rows %}<tr>{% for f in cols %}<td>{% if f.type=='fk' %}{{ r[f.name~'__label'] or '—' }}{% elif f.type=='date' %}{{ r[f.name]|dfr }}{% else %}{{ r[f.name] if r[f.name] not in (None,'') else '—' }}{% endif %}</td>{% endfor %}</tr>{% endfor %}</table></div>
+{% endblock %}

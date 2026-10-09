@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% block title %}Tableau de bord · RH Pro{% endblock %}
+{% macro bars(data, unit='') %}{% set mx = (data|map(attribute=1)|max) if data else 1 %}
+ {% for l, v in data %}<div class="hb"><span class="l" title="{{ l }}">{{ l }}</span><span class="t"><i style="width:{{ (100*v/mx) if mx else 0 }}%"></i></span><span class="v">{{ v|round|int }}{{ unit }}</span></div>{% else %}<div class="empty">Pas encore de données</div>{% endfor %}{% endmacro %}
+{% block body %}
+<h1>Tableau de bord</h1><p class="sub">{{ cfg.entreprise }} · vue d'ensemble RH</p>
+<div class="grid g4" style="margin-bottom:18px">
+ <div class="kpi"><b>{{ kpi.effectif }}</b><span>Effectif actif</span></div>
+ <div class="kpi"><b>{{ kpi.absents }}</b><span>Absents aujourd'hui</span></div>
+ <div class="kpi"><b><a href="{{ url_for('liste', key='conges', f='En attente') }}">{{ kpi.conges_attente }}</a></b><span>Congés à traiter</span></div>
+ <div class="kpi"><b>{{ kpi.candidats }}</b><span>Candidatures en cours · {{ kpi.offres }} offre(s) ouverte(s)</span></div>
+ <div class="kpi"><b>{{ kpi.turnover }} %</b><span>Turnover</span></div>
+ <div class="kpi"><b>{{ kpi.anciennete }} ans</b><span>Ancienneté moyenne</span></div>
+ <div class="kpi"><b>{{ kpi.age }} ans</b><span>Âge moyen</span></div>
+ <div class="kpi"><b>{{ kpi.note }} / 5</b><span>Note moyenne des évaluations</span></div>
+ <div class="kpi"><b>{{ kpi.masse|money }}</b><span>Coût salarial {{ kpi.masse_periode or '' }} (brut + charges)</span></div>
+ <div class="kpi"><b>{{ kpi.budget_formation|money }}</b><span>Budget formation {{ today[:4] }}</span></div>
+ <div class="kpi"><b>{{ kpi.satisfaction }} / 5</b><span>Satisfaction (feedbacks)</span></div>
+</div>
+<div class="grid g2">
+ <div class="card"><h2>Effectif par département</h2>{{ bars(charts.dept) }}</div>
+ <div class="card"><h2>Types de contrat</h2>{{ bars(charts.contrat) }}</div>
+ <div class="card"><h2>Masse salariale brute (6 derniers mois)</h2>{{ bars(charts.masse) }}</div>
+ <div class="card"><h2>Jours d'absence {{ today[:4] }} (approuvés)</h2>{{ bars(charts.absences, ' j') }}</div>
+ <div class="card"><h2>Pipeline de recrutement</h2>{{ bars(charts.pipeline) }}</div>
+ <div class="card"><h2>⚠️ Alertes</h2>
+  {% for c in alertes.conformite %}<p><span class="b {{ c.statut|badge }}">{{ c.statut }}</span> <a href="{{ url_for('modifier', key='conformite', rid=c.id) }}">{{ c.intitule }}</a> <span class="muted">{{ c.echeance|dfr }}</span></p>{% endfor %}
+  {% for d in alertes.declarations %}<p><span class="b warn">{{ d.statut }}</span> <a href="{{ url_for('modifier', key='declarations', rid=d.id) }}">{{ d.type }} {{ d.periode }}</a> <span class="muted">avant le {{ d.echeance|dfr }}</span></p>{% endfor %}
+  {% for e in alertes.entretiens %}<p>🗓️ Entretien <a href="{{ url_for('modifier', key='entretiens', rid=e.id) }}">{{ e.cand }}</a> <span class="muted">{{ e.date_heure|dfr }}</span></p>{% endfor %}
+  {% for x in alertes.fins %}<p><span class="b warn">Fin de contrat</span> <a href="{{ url_for('employe', eid=x.id) }}">{{ x.prenom }} {{ x.nom }}</a> <span class="muted">{{ x.date_fin_contrat|dfr }}</span></p>{% endfor %}
+  {% for x in alertes.docs %}<p><span class="b warn">Document</span> {{ x.emp }} — {{ x.titre }} <span class="muted">expire le {{ x.date_expiration|dfr }}</span></p>{% endfor %}
+  {% for x in alertes.taches %}<p>✅ {{ x.emp }} — {{ x.tache }} <span class="muted">{{ x.echeance|dfr }}</span></p>{% endfor %}
+  {% if not (alertes.conformite or alertes.declarations or alertes.entretiens or alertes.fins or alertes.docs or alertes.taches) %}<div class="empty">Rien à signaler 🎉</div>{% endif %}
+ </div>
+</div>
+{% if alertes.anniv %}<div class="card"><h2>🎂 Anniversaires du mois</h2>{% for x in alertes.anniv %}<span class="b neutral" style="margin:3px">{{ x.date_naissance[8:10] }}/{{ x.date_naissance[5:7] }} · {{ x.prenom }} {{ x.nom }}</span>{% endfor %}</div>{% endif %}
+{% endblock %}

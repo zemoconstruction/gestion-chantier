@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block body %}
+<h1>Paramètres</h1><p class="sub">Taux utilisés pour la paie et les congés. Adaptez-les à la réglementation de votre pays.</p>
+<form method="post" class="card"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><div class="fg">
+<div><label>Nom de l'entreprise</label><input name="entreprise" value="{{ cfg.entreprise }}"></div>
+<div><label>Devise</label><input name="devise" value="{{ cfg.devise }}"></div>
+<div><label>Cotisations salariales (% du brut)</label><input name="cot_sal" value="{{ cfg.cot_sal }}"></div>
+<div><label>Charges patronales (% du brut)</label><input name="cot_pat" value="{{ cfg.cot_pat }}"></div>
+<div><label>Impôt sur salaire (% du brut après cotisations)</label><input name="impot" value="{{ cfg.impot }}"></div>
+<div><label>Jours de congé annuel par an</label><input name="conges_annuels" value="{{ cfg.conges_annuels }}"></div>
+</div><br><p class="muted">Le calcul est un taux unique simplifié : pour un barème progressif ou des règles spécifiques, faites valider par votre comptable.</p><button class="btn">Enregistrer</button></form>
+<div class="card"><h2>Sauvegarde</h2><p class="muted">Téléchargez une copie complète de la base de données. Les pièces jointes sont dans le dossier <code>data/uploads</code> : copiez aussi ce dossier.</p>
+<form method="post" action="{{ url_for('sauvegarde') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn s">⬇ Télécharger la sauvegarde</button></form></div>{% endblock %}

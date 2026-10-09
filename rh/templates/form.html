@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block title %}{{ m.title }} · RH Pro{% endblock %}
+{% block body %}
+<h1>{{ m.icon }} {{ 'Modifier' if edit else 'Ajouter' }} — {{ m.singular }}</h1><p class="sub"><a href="{{ url_for('liste', key=key) }}">← Retour à la liste</a></p>
+<form method="post" enctype="multipart/form-data" class="card"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="fg">
+{% for f in m.fields if f.type!='calc' %}
+ <div class="{{ 'full' if f.type=='textarea' }}"><label>{{ f.label }}{% if f.req %} *{% endif %}</label>
+ {% set v = row[f.name] if row[f.name] is not none else '' %}
+ {% if f.type=='textarea' %}<textarea name="{{ f.name }}" rows="3">{{ v }}</textarea>
+ {% elif f.type=='select' %}<select name="{{ f.name }}">{% if not f.req %}<option value=""></option>{% endif %}{% for o in f.opts %}<option {{ 'selected' if o==v }}>{{ o }}</option>{% endfor %}</select>
+ {% elif f.type=='fk' %}<select name="{{ f.name }}" {{ 'required' if f.req }}><option value=""></option>{% for o in opts[f.name] %}<option value="{{ o.id }}" {{ 'selected' if o.id|string==v|string }}>{{ o.l }}</option>{% endfor %}</select>
+ {% elif f.type=='bool' %}<input type="checkbox" name="{{ f.name }}" {{ 'checked' if v and v!='0' }}>
+ {% elif f.type=='file' %}<input type="file" name="{{ f.name }}">{% if v %}<span class="muted">Fichier actuel conservé si vide.</span>{% endif %}
+ {% elif f.type=='number' %}<input name="{{ f.name }}" inputmode="decimal" value="{{ v if v!='' else '' }}">
+ {% elif f.type=='datetime' %}<input type="datetime-local" name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.req }}>
+ {% elif f.type=='date' %}<input type="date" name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.req }}>
+ {% else %}<input type="{{ f.type if f.type in ('email','tel') else 'text' }}" name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.req }}>{% endif %}
+ </div>
+{% endfor %}</div>
+{% if key=='paies' %}<p class="muted">Brut, cotisations, impôt et net sont recalculés automatiquement à l'enregistrement.</p>{% endif %}
+{% if key=='conges' %}<p class="muted">Le nombre de jours ouvrés (lundi–vendredi) est calculé automatiquement.</p>{% endif %}
+<br><button class="btn">Enregistrer</button> <a class="btn s" href="{{ url_for('liste', key=key) }}">Annuler</a></form>
+{% endblock %}

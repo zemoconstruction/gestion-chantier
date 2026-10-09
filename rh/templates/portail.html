@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% block title %}Mon espace{% endblock %}
+{% block body %}
+<h1>Bonjour {{ session.nom }} 👋</h1><p class="sub">Votre espace personnel : congés, bulletins, documents et feedbacks.</p>
+{% if session.role=='admin' %}<div class="flash danger">Compte RH sans fiche employé : seules les annonces sont affichées.</div>{% endif %}
+{% if e %}
+<div class="grid g4" style="margin-bottom:18px">
+ <div class="kpi"><b>{{ solde.reste|round(1) }} j</b><span>Congés restants ({{ today[:4] }})</span></div>
+ <div class="kpi"><b>{{ solde.pris|round(1) }} j</b><span>Congés pris</span></div>
+ <div class="kpi"><b>{{ e.poste }}</b><span>{{ e.departement or 'Poste' }}</span></div></div>
+<div class="grid g2">
+<div class="card" id="conges"><h2>🌴 Demander un congé</h2>
+<form method="post" action="{{ url_for('portail_conge') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><div class="fg">
+<div><label>Type</label><select name="type">{% for t in types %}<option>{{ t }}</option>{% endfor %}</select></div>
+<div></div><div><label>Du</label><input type="date" name="date_debut" min="{{ today }}" required></div><div><label>Au</label><input type="date" name="date_fin" min="{{ today }}" required></div>
+<div class="full"><label>Motif (facultatif)</label><textarea name="motif" rows="2"></textarea></div></div><br><button class="btn">Envoyer la demande</button></form>
+<br><h2>Mes demandes</h2>{% for c in conges %}<p><span class="b {{ c.statut|badge }}">{{ c.statut }}</span> {{ c.type }} · {{ c.date_debut|dfr }} → {{ c.date_fin|dfr }} ({{ c.jours|int }} j)
+{% if c.statut=='En attente' %}<form method="post" action="{{ url_for('portail_annuler', cid=c.id) }}" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn sm s">Annuler</button></form>{% endif %}
+{% if c.commentaire_rh %}<br><span class="muted">RH : {{ c.commentaire_rh }}</span>{% endif %}</p>{% else %}<div class="empty">Aucune demande</div>{% endfor %}</div>
+<div class="card"><h2>💶 Mes bulletins de paie</h2>{% for p in paies %}<p>{{ p.periode }} — net {{ p.net|money }} <a class="btn sm s" href="{{ url_for('bulletin', pid=p.id) }}">Voir</a></p>{% else %}<div class="empty">Aucun bulletin disponible</div>{% endfor %}
+<br><h2>📈 Mes évaluations</h2>{% for v in evals %}<p>{{ v.date|dfr }} · {{ v.type }} · <b>{{ v.note or '—' }}/5</b><br><span class="muted">{{ v.objectifs or '' }}</span></p>{% else %}<div class="empty">Aucune évaluation</div>{% endfor %}
+<br><h2>🎓 Mes formations</h2>{% for f in forms %}<p><span class="b {{ f.statut|badge }}">{{ f.statut }}</span> {{ f.intitule }} {{ f.date_debut|dfr }}</p>{% else %}<div class="empty">Aucune formation</div>{% endfor %}
+<br><h2>🧩 Mes compétences</h2>{% for k in comps %}<div class="hb"><span class="l">{{ k.competence }}</span><span class="t"><i style="width:{{ 20*(k.niveau or 0) }}%"></i></span><span class="v">{{ k.niveau|int }}/{{ k.cible|int }}</span></div>{% else %}<div class="empty">Aucune compétence</div>{% endfor %}</div>
+<div class="card"><h2>👤 Mes coordonnées</h2><form method="post" action="{{ url_for('portail_profil') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><div class="fg">
+<div><label>Téléphone</label><input name="telephone" value="{{ e.telephone or '' }}"></div><div><label>Adresse</label><input name="adresse" value="{{ e.adresse or '' }}"></div><div class="full"><label>Contact d'urgence</label><input name="contact_urgence" value="{{ e.contact_urgence or '' }}"></div></div><br><button class="btn s">Mettre à jour</button></form></div>
+<div class="card" id="feedback"><h2>💬 Donner mon avis</h2><form method="post" action="{{ url_for('portail_feedback') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><div class="fg">
+<div><label>Thème</label><select name="categorie">{% for t in themes %}<option>{{ t }}</option>{% endfor %}</select></div><div><label>Satisfaction (1-5)</label><input name="note" type="number" min="1" max="5" value="4"></div>
+<div class="full"><label>Votre message</label><textarea name="message" rows="3" required></textarea></div></div><br>
+<label style="font-weight:400"><input type="checkbox" name="anonyme"> Envoyer anonymement</label><br><button class="btn">Envoyer</button></form></div>
+</div>{% endif %}
+<div class="card"><h2>📢 Annonces, politiques & documents</h2>
+{% for a in annonces %}<p><span class="b neutral">{{ a.categorie }}</span> <b>{{ a.titre }}</b> <span class="muted">{{ a.date|dfr }}</span>{% if a.fichier %} <a href="{{ url_for('fichier', name=a.fichier) }}">📎 Télécharger</a>{% endif %}<br>{{ a.contenu }}</p>{% else %}<div class="empty">Aucune publication</div>{% endfor %}</div>
+{% endblock %}

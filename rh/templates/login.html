@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Connexion · RH Pro{% endblock %}
+{% block body %}
+<div class="card"><h1>RH Pro</h1><p class="sub">Connectez-vous pour accéder à votre espace.</p>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<label>Identifiant</label><input name="username" autofocus required autocomplete="username"><br><br>
+<label>Mot de passe</label><input type="password" name="password" required autocomplete="current-password"><br><br>
+<button class="btn" style="width:100%;justify-content:center">Se connecter</button></form></div>
+{% endblock %}

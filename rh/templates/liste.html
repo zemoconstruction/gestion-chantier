@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% block title %}{{ m.title }} · RH Pro{% endblock %}
+{% macro cell(r, f) %}{% set v = r[f.name] %}
+ {%- if f.type=='fk' %}{{ r[f.name~'__label'] or '—' }}
+ {%- elif f.type=='date' or f.type=='datetime' %}{{ v|dfr }}
+ {%- elif f.type=='number' and f.name in ('salaire_base','cout','montant','primes') %}{{ v|money }}
+ {%- elif f.name in ('brut','net') %}{{ v|money }}
+ {%- elif f.type=='select' %}<span class="b {{ v|badge }}">{{ v or '—' }}</span>
+ {%- elif f.type=='bool' %}{{ '✔' if v else '—' }}
+ {%- elif f.type=='file' %}{% if v %}<a href="{{ url_for('fichier', name=v) }}">Télécharger</a>{% else %}—{% endif %}
+ {%- else %}{{ v if v not in (None,'') else '—' }}{% endif %}{% endmacro %}
+{% block body %}
+<div class="head"><div><h1>{{ m.icon }} {{ m.title }}</h1><p class="sub" style="margin:0">{{ rows|length }} résultat(s)</p></div>
+<div class="bar noprint" style="margin:0">
+ {% if key=='paies' %}
+ <form method="post" action="{{ url_for('generer_paie') }}" class="bar" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input name="periode" value="{{ today[:7] }}" style="min-width:110px;width:110px"><button class="btn s">Générer la paie du mois</button></form>
+ {% endif %}
+ <a class="btn" href="{{ url_for('nouveau', key=key) }}">+ Ajouter</a></div></div>
+{% if key=='paies' and q|length==7 %}
+<div class="bar noprint">
+ <form method="post" action="{{ url_for('valider_paie') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="periode" value="{{ q }}"><input type="hidden" name="statut" value="Validée"><button class="btn s">✔ Valider la paie {{ q }}</button></form>
+ <form method="post" action="{{ url_for('valider_paie') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="periode" value="{{ q }}"><input type="hidden" name="statut" value="Payée"><button class="btn s">💶 Marquer payée</button></form>
+ <form method="post" action="{{ url_for('generer_declarations') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="periode" value="{{ q }}"><button class="btn s">🏛️ Préparer les déclarations</button></form>
+ <div class="muted" style="align-self:center">Total net : <b>{{ rows|sum(attribute='net')|money }}</b> · Brut : <b>{{ rows|sum(attribute='brut')|money }}</b> · Charges patronales : <b>{{ rows|sum(attribute='cot_pat')|money }}</b></div>
+</div>{% endif %}
+<form class="bar noprint" method="get"><input name="q" value="{{ q }}" placeholder="Rechercher…">
+{% if fdef and fdef.opts %}<select name="f" onchange="this.form.submit()"><option value="">Tous · {{ fdef.label }}</option>{% for o in fdef.opts %}<option {{ 'selected' if o==flt }}>{{ o }}</option>{% endfor %}</select>{% endif %}
+<button class="btn s">Filtrer</button></form>
+<div class="card tw">
+{% if rows %}<table><tr>{% for f in cols %}<th>{{ f.label }}</th>{% endfor %}<th></th></tr>
+{% for r in rows %}<tr>
+ {% for f in cols %}<td>{% if loop.first and m.detail %}<a href="{{ url_for('employe' if key=='employes' else 'candidat', **({'eid':r.id} if key=='employes' else {'cid':r.id})) }}"><b>{{ cell(r,f) }}</b></a>
+ {% if key=='employes' %}<br><span class="muted">{{ r.prenom }}</span>{% endif %}{% else %}{{ cell(r,f) }}{% endif %}</td>{% endfor %}
+ <td class="act noprint">
+  {% if key=='conges' and r.statut=='En attente' %}
+   <form method="post" action="{{ url_for('decision_conge', cid=r.id) }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="statut" value="Approuvé"><button class="btn sm ok">Approuver</button></form>
+   <form method="post" action="{{ url_for('decision_conge', cid=r.id) }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="statut" value="Refusé"><button class="btn sm d">Refuser</button></form>
+  {% endif %}
+  {% if key=='paies' %}<a class="btn sm s" href="{{ url_for('bulletin', pid=r.id) }}">Bulletin</a>{% endif %}
+  <a class="btn sm s" href="{{ url_for('modifier', key=key, rid=r.id) }}">Modifier</a>
+  <form method="post" action="{{ url_for('supprimer', key=key, rid=r.id) }}" onsubmit="return confirm('Supprimer définitivement ?')"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn sm s">🗑</button></form>
+ </td></tr>{% endfor %}</table>
+{% else %}<div class="empty">Aucun élément. Cliquez sur « + Ajouter » pour commencer.</div>{% endif %}</div>
+{% endblock %}
